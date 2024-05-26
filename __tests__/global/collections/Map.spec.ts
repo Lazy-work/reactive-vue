@@ -3,7 +3,7 @@ import { isReactive, reactive, toRaw, watchEffect as effect } from '../../../src
 describe('reactivity/collections', () => {
   function coverCollectionFn(collection: Map<any, any>, fnName: string) {
     const spy = vi.fn()
-    let proxy = reactive(collection)
+    const proxy = reactive(collection)
     ;(collection as any)[fnName] = spy
     return [proxy as any, spy]
   }
@@ -69,7 +69,7 @@ describe('reactivity/collections', () => {
       const map = reactive(new Map())
       effect(() => {
         dummy = 0
-        for (let [key, num] of map) {
+        for (const [key, num] of map) {
           key
           dummy += num
         }
@@ -116,7 +116,7 @@ describe('reactivity/collections', () => {
       const map = reactive(new Map())
       effect(() => {
         dummy = 0
-        for (let key of map.keys()) {
+        for (const key of map.keys()) {
           dummy += key
         }
       })
@@ -137,7 +137,7 @@ describe('reactivity/collections', () => {
       const map = reactive(new Map())
       effect(() => {
         dummy = 0
-        for (let num of map.values()) {
+        for (const num of map.values()) {
           dummy += num
         }
       })
@@ -163,7 +163,7 @@ describe('reactivity/collections', () => {
       effect(() => {
         dummy = ''
         dummy2 = 0
-        for (let [key, num] of map.entries()) {
+        for (const [key, num] of map.entries()) {
           dummy += key
           dummy2 += num
         }

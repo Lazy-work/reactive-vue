@@ -1,10 +1,10 @@
 import { Destructor } from '../types';
-import BaseEffect from './AbstractEffect';
-import type { DebuggerEvent, WatchCallback, WatchOptions, WatchSource } from '../types';
+import AbstractEffect from './AbstractEffect';
+import type { WatchCallback, WatchOptions, WatchSource } from '../types';
 import type IContext from '../context/IContext';
-import { isRef, toValue, unref } from '../ref';
-import { isArray, isFunction, isMap, isObject, isPlainObject, isSet } from '@vue/shared';
-import { isProxy, isReactive, toRaw } from '../reactive';
+import { isRef, toValue } from '../ref';
+import { isArray, isMap, isObject, isPlainObject, isSet } from '@vue/shared';
+import { isReactive } from '../reactive';
 import { ReactiveFlags } from '../constants';
 
 export function traverse(
@@ -48,15 +48,13 @@ export function traverse(
 }
 
 
-class WatcherEffect<T> extends BaseEffect {
+class WatcherEffect<T> extends AbstractEffect {
   #callback: WatchCallback<T>;
   #cleanup: (() => void) | undefined = undefined;
   #source: WatchSource<T>;
   #options: WatchOptions;
   #depsValue: any[] = [];
   #previousState: any[] = [];
-  #onTrack?:(event: DebuggerEvent) => void;
-  #onTrigger?:(event: DebuggerEvent) => void;
   #executed = false;
   #force = false;
 
@@ -67,12 +65,10 @@ class WatcherEffect<T> extends BaseEffect {
     source: WatchSource<T>,
     options: WatchOptions = {},
   ) {
-    super(id, context);
+    super(id, context, options.onTrack, options.onTrigger);
     this.#callback = callback;
     this.#source = source;
     this.#options = options;
-    this.#onTrack = options.onTrack;
-    this.#onTrigger = options.onTrigger;
   }
 
   get id() {
@@ -80,11 +76,11 @@ class WatcherEffect<T> extends BaseEffect {
   }
 
   get onTrack() {
-    return this.#onTrack;
+    return this._onTrack;
   }
 
   get onTrigger() {
-    return this.#onTrigger;
+    return this._onTrigger;
   }
 
   getPreviousState() {

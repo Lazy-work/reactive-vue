@@ -3,25 +3,8 @@ import Context from "../context/local";
 import { isReactComponent } from "../utils";
 import { getContext, setContext, undoContext, unsetContext } from "./setting";
 
-const stores = [];
-const reducers = [];
-
 export function createContext() {
   return new Context();
-}
-
-export function createStore(length = 0, lengthReducer = 0) {
-  const id = stores.push(new Array(length)) - 1;
-  reducers.push(new Array(lengthReducer));
-  return id;
-}
-
-export function getStore(id) {
-  return stores[id];
-}
-
-export function getStoreDispatcher(id) {
-  return reducers[id];
 }
 
 export function createHook(reactiveHook) {

@@ -1,7 +1,5 @@
 import {
   type Target,
-  contextListMap,
-  initialContextMap,
   isReadonly,
   isShallow,
   reactive,
@@ -10,16 +8,9 @@ import {
   readonlyMap,
   shallowReactiveMap,
   shallowReadonlyMap,
-  subscribe,
   toRaw,
 } from '.'
-import { INITIAL_CONTEXT_KEY, IS_GLOBAL_KEY, LISTENER_LIST_KEY, ReactiveFlags, SUBSCRIBE_KEY, TrackOpTypes, TriggerOpTypes } from '../constants'
-/* import {
-  pauseScheduling,
-  pauseTracking,
-  resetScheduling,
-  resetTracking,
-} from './effect' */
+import { IS_GLOBAL_KEY, ReactiveFlags, TrackOpTypes, TriggerOpTypes } from '../constants'
 import { enableTracking, ITERATE_KEY, pauseTracking, track, trigger } from './reactiveEffect'
 import {
   hasChanged,
@@ -32,7 +23,6 @@ import {
 } from '@vue/shared'
 import { isRef } from '../ref'
 import { warn } from './warning'
-import { CONTEXT_KEY as CONTEXT_LIST_KEY } from '../constants'
 
 const isNonTrackableKeys = /*#__PURE__*/ makeMap(`__proto__,__v_isRef,__isVue`)
 
@@ -178,7 +168,7 @@ class MutableReactiveHandler extends BaseReactiveHandler {
   }
 
   set(
-    target: object,
+    target: object & { [IS_GLOBAL_KEY]?: boolean },
     key: string | symbol,
     value: unknown,
     receiver: object,
@@ -218,7 +208,7 @@ class MutableReactiveHandler extends BaseReactiveHandler {
     return result
   }
 
-  deleteProperty(target: object, key: string | symbol): boolean {
+  deleteProperty(target: object & { [IS_GLOBAL_KEY]?: boolean }, key: string | symbol): boolean {
     const hadKey = hasOwn(target, key)
     const oldValue = (target as any)[key]
     const result = Reflect.deleteProperty(target, key)

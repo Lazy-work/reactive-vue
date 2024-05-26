@@ -10,7 +10,7 @@ import { EffectType, LifecycleType, WatcherType } from '../local';
 import ComputedRef from '../../ref/global/ComputedRef';
 import type IContext from '../IContext';
 import EffectScope, { getCurrentScope, setCurrentScope } from '../../effect/EffectScope';
-import { WatchEffectOptions } from '../../types';
+import { WatchEffectOptions, WatchOptions, WatchSource } from '../../types';
 
 class GlobalContext implements IContext {
   private _provider: Map<any, any> = new Map();
@@ -28,7 +28,7 @@ class GlobalContext implements IContext {
   private _watcherEffects: WatcherEffect<any>[] = [];
   private _unmountEffects: OnUnmountedLifecycle[] = [];
 
-  private _executed: boolean;
+  private _executed: boolean = false;
 
   init() {
     this._idEffect = 0;
@@ -40,7 +40,7 @@ class GlobalContext implements IContext {
     this._storeCursor = 0;
     this._runningOnUpdated = false;
     this._disabledEffects = [];
-    this._currentEffect = null;
+    this._currentEffect = undefined;
 
     this._idEffect = 1;
 
@@ -216,7 +216,8 @@ class GlobalContext implements IContext {
   get disabledEffects() {
     return this._disabledEffects;
   }
-  createMemoEffect(getterOrOptions: any) {
+  
+  createMemoEffect<T>(getterOrOptions: any): MemoEffect<T> {
     mustBeOutsideComponent();
     let getter;
     let setter;
@@ -227,7 +228,7 @@ class GlobalContext implements IContext {
       setter = getterOrOptions.set;
     }
     const storeIndex = this.getStoreNextIndex();
-    const memoEffect = new MemoEffect(this._idEffect, this, getter, storeIndex);
+    const memoEffect = new MemoEffect<T>(this._idEffect, this, getter, storeIndex);
     const ref = new ComputedRef(storeIndex, memoEffect, setter);
     memoEffect.ref = ref;
     this._memoEffects.push(memoEffect);
@@ -287,9 +288,9 @@ class GlobalContext implements IContext {
     return effect;
   }
 
-  createWatcher(type: WatcherType, callback: any, source, options) {
+  createWatcher<T>(type: WatcherType, callback: any, source: WatchSource<T>, options: WatchOptions): WatcherEffect<T> {
     mustBeOutsideComponent();
-    const watcher = new WatcherEffect(this._idEffect, this, callback, source, options);
+    const watcher = new WatcherEffect<T>(this._idEffect, this, callback, source, options);
     switch (type) {
       case WatcherType.PRE:
       case WatcherType.POST:
@@ -311,7 +312,7 @@ class GlobalContext implements IContext {
   createEffectScope(detached?: boolean): EffectScope {
     return new EffectScope(this, detached);
   }
-  getParent(): IContext {
+  getParent() {
     return undefined;
   }
 
@@ -324,3 +325,5 @@ class GlobalContext implements IContext {
 }
 
 globalThis.__v_globalContext = new GlobalContext();
+
+export default GlobalContext;

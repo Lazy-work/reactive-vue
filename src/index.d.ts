@@ -223,7 +223,7 @@ return withDirectives(h(comp), [
 */
 
 
-export interface InjectionKey<T> extends Symbol {
+export interface InjectionKey<T> extends symbol {
 }
 export declare function provide<T, K = InjectionKey<T> | string | number>(key: K, value: K extends InjectionKey<infer V> ? V : T): void;
 export declare function inject<T>(key: InjectionKey<T> | string): T | undefined;
@@ -341,7 +341,7 @@ export declare const useSSRContext: <T = Record<string, any>>() => T | undefined
 interface AppRecord {
     id: number;
     version: string;
-    types: Record<string, string | Symbol>;
+    types: Record<string, string | symbol>;
 }
 
 export declare const version: string;

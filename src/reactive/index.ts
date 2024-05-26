@@ -11,7 +11,7 @@ import {
   shallowCollectionHandlers,
   shallowReadonlyCollectionHandlers,
 } from './collectionHandlers'
-import { CONTEXT_KEY, IS_GLOBAL_KEY, LISTENER_LIST_KEY, ReactiveFlags, SUBSCRIBE_KEY } from '../constants'
+import { IS_GLOBAL_KEY, ReactiveFlags } from '../constants'
 import { warn } from './warning'
 import { getContext } from '../management/setting'
 import IContext from '../context/IContext'
@@ -23,6 +23,7 @@ export interface Target {
   [ReactiveFlags.IS_READONLY]?: boolean
   [ReactiveFlags.IS_SHALLOW]?: boolean
   [ReactiveFlags.RAW]?: any
+  [IS_GLOBAL_KEY]?: boolean
 }
 
 type KeyToContextList = Map<any, IContext[]>;
@@ -267,7 +268,7 @@ export function subscribe(target: Target, key: any, listener: Listener) {
 }
 
 export function unsubcribe(target: Target, key: any, listener: Listener) {
-  let map = listenerMap.get(target);
+  const map = listenerMap.get(target);
   if (!map) {
     return;
   }
@@ -281,11 +282,11 @@ export function unsubcribe(target: Target, key: any, listener: Listener) {
 }
 
 export function triggerListeners(target: any, key: any, value: any, oldValue: any) {
-  let map = listenerMap.get(target);
+  const map = listenerMap.get(target);
   if (!map) {
     return;
   }
-  let listeners = map.get(key);
+  const listeners = map.get(key);
   if (!listeners) {
     return;
   }

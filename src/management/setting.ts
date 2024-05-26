@@ -1,8 +1,8 @@
 import type IContext from "../context/IContext";
 
-let currentContext: IContext = undefined;
-let previousContext: IContext = undefined;
-let parentContext: IContext = undefined;
+let currentContext: IContext | undefined = undefined;
+let previousContext: IContext | undefined = undefined;
+let parentContext: IContext | undefined = undefined;
 
 export function unsetContext() {
   currentContext = undefined;

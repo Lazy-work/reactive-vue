@@ -15,6 +15,8 @@ import MemoEffect from '../../effect/MemoEffect';
 import type {
   ReactHook,
   WatchEffectOptions,
+  WatchOptions,
+  WatchSource,
 } from '../../types';
 import HookRef from '../../ref/local/HookRef';
 import HookCallableRef from '../../ref/local/HookCallableRef';
@@ -104,11 +106,8 @@ class Context implements IContext {
   #shouldRender = false;
   #executed = false;
   #nbExecution = 0;
-  #onInitListeners: any[] = [];
-  #onTrackPropsListeners: any[] = [];
-  #onTrackHookListeners: any[] = [];
   #mounted = false;
-  #children?: () => React.ReactNode;
+  #children: () => React.ReactNode = () => null;
 
 
   constructor() {
@@ -140,7 +139,7 @@ class Context implements IContext {
     return result;
   }
 
-  getParent(): IContext {
+  getParent() {
     return this.#parent;
   }
 
@@ -155,19 +154,6 @@ class Context implements IContext {
     this.#idEffect = 1;
     this.#storeCursor = 0;
     this.#nbExecution++;
-    for (const listener of this.#onInitListeners) listener();
-  }
-
-  onInit(callback) {
-    this.#onInitListeners.push(callback);
-  }
-
-  onTrackProps(callback) {
-    this.#onTrackPropsListeners.push(callback);
-  }
-
-  onTrackHooks(callback) {
-    this.#onTrackHookListeners.push(callback);
   }
 
   processHooks() {
@@ -211,7 +197,6 @@ class Context implements IContext {
           }
         }
       }
-      for (const listener of this.#onTrackHookListeners) listener();
     }
 
   }
@@ -486,7 +471,7 @@ class Context implements IContext {
     return result;
   }
 
-  createMemoEffect(getterOrOptions: any) {
+  createMemoEffect<T>(getterOrOptions: any): MemoEffect<T> {
     mustBeReactiveComponent();
     let getter;
     let setter;
@@ -497,7 +482,7 @@ class Context implements IContext {
       setter = getterOrOptions.set;
     }
     const storeIndex = this.getStoreNextIndex();
-    const memoEffect = new MemoEffect(this.#idEffect, this, getter, storeIndex);
+    const memoEffect = new MemoEffect<T>(this.#idEffect, this, getter, storeIndex);
     const ref = new ComputedRef(this, storeIndex, memoEffect, setter);
     memoEffect.ref = ref;
     this.#memoizedEffects.push(memoEffect);
@@ -540,7 +525,7 @@ class Context implements IContext {
     }
   }
 
-  createEffect(type: EffectType, callback: any, options?: WatchEffectOptions) {
+  createEffect(type: EffectType, callback: any, options?: WatchEffectOptions): Effect {
     mustBeReactiveComponent();
     const effect = new Effect(this.#idEffect, this, callback, options?.onTrack, options?.onTrigger);
     switch (type) {
@@ -572,7 +557,7 @@ class Context implements IContext {
     return effect;
   }
 
-  createWatcher(type: WatcherType, callback: any, source, options) {
+  createWatcher<T>(type: WatcherType, callback: any, source: WatchSource<T>, options: WatchOptions): WatcherEffect<T> {
     mustBeReactiveComponent();
     const watcher = new WatcherEffect(this.#idEffect, this, callback, source, options);
     switch (type) {
@@ -621,7 +606,7 @@ class Context implements IContext {
   }
 
   triggerRendering() {
-    if (this.executed && !this.#shouldRender) this.#renderTrigger();
+    if (this.#executed && !this.#shouldRender) this.#renderTrigger();
   }
 
   defineProps(keys: string[]) {
@@ -726,8 +711,6 @@ class Context implements IContext {
 
     if (this.#staticProps) result = this.trackPropsStatically(props);
     else result = this.trackPropsDynamically(props);
-
-    for (const listener of this.#onTrackPropsListeners) listener();
 
     return result
   }

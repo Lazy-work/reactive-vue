@@ -351,7 +351,7 @@ describe("reactivity/computed", () => {
   });
 
   it("debug: onTrack", () => {
-    let events: DebuggerEvent[] = [];
+    const events: DebuggerEvent[] = [];
     const onTrack = vi.fn((e: DebuggerEvent) => {
       events.push(e);
     });
@@ -392,7 +392,7 @@ describe("reactivity/computed", () => {
   });
 
   it("debug: onTrigger", () => {
-    let events: DebuggerEvent[] = [];
+    const events: DebuggerEvent[] = [];
     const onTrigger = vi.fn((e: DebuggerEvent) => {
       events.push(e);
     });

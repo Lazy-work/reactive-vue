@@ -134,7 +134,7 @@ export function trigger(
         return
     }
 
-    let deps: Map<IContext, number[]> = new Map();
+    const deps: Map<IContext, number[]> = new Map();
     if (type === TriggerOpTypes.CLEAR) {
         // collection being cleared
         // trigger all effects for target

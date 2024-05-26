@@ -1,12 +1,12 @@
 import { LifecycleType } from "../context/local";
 import { getContext } from '../management/setting';
 
-let tickTrigger;
+const NOOP = () => {};
+let tickTrigger: (value?: unknown) => void = NOOP;
 let currentTick = new Promise((resolve) => (tickTrigger = resolve));
 
-
 function createNextTick() {
-    let resolve;
+    let resolve: (value?: unknown) => void = NOOP;
     currentTick = new Promise((r) => (resolve = r));
     return resolve;
 }

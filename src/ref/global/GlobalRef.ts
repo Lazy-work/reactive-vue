@@ -2,8 +2,6 @@ import Ref from "../Ref";
 import { getContext } from '../../management/setting';
 import AbstractEffect from "../../effect/AbstractEffect";
 import type IContext from "../../context/IContext";
-import { isReactComponent } from "../../utils";
-import { useSyncExternalStore } from "react";
 import { TrackOpTypes } from "../../constants";
 
 abstract class GlobalRef<T> extends Ref<T> {

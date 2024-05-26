@@ -21,7 +21,7 @@ import { act, render } from "@testing-library/react";
 
 describe("reactivity/ref", () => {
   it("should hold a value", () => {
-    let a = ref(1);
+    const a = ref(1);
     expect(a.value).toBe(1);
     a.value = 2;
     expect(a.value).toBe(2);
@@ -31,7 +31,7 @@ describe("reactivity/ref", () => {
     let a;
     let dummy;
     let fn;
-    let Comp = reactivity(() => {
+    const Comp = reactivity(() => {
       a = ref(1);
       fn = vi.fn(() => {
         dummy = a.value;
@@ -62,7 +62,7 @@ describe("reactivity/ref", () => {
     let a;
     let dummy;
 
-    let Comp = reactivity(() => {
+    const Comp = reactivity(() => {
       a = ref({
         count: 1,
       });
@@ -85,7 +85,7 @@ describe("reactivity/ref", () => {
   it("should work without initial value", () => {
     let a = ref();
     let dummy;
-    let Comp = reactivity(() => {
+    const Comp = reactivity(() => {
       a = ref();
       effect(() => {
         dummy = a.value;
@@ -110,7 +110,7 @@ describe("reactivity/ref", () => {
     let dummy1: number;
     let dummy2: number;
 
-    let Comp = reactivity(() => {
+    const Comp = reactivity(() => {
       a = ref(1);
       obj = reactive({
         a,
@@ -129,7 +129,7 @@ describe("reactivity/ref", () => {
     act(() => {
       render(<Comp />);
     });
-    let assertDummiesEqualTo = (val: number) =>
+    const assertDummiesEqualTo = (val: number) =>
       [dummy1, dummy2].forEach((dummy) => expect(dummy).toBe(val));
 
     assertDummiesEqualTo(1);
@@ -148,9 +148,9 @@ describe("reactivity/ref", () => {
   });
 
   it("should unwrap nested ref in types", () => {
-    let Comp = reactivity(() => {
-      let a = ref(0);
-      let b = ref(a);
+    const Comp = reactivity(() => {
+      const a = ref(0);
+      const b = ref(a);
 
       expect(typeof (b.value + 1)).toBe("number");
       return () => <div />;
@@ -162,12 +162,12 @@ describe("reactivity/ref", () => {
   });
 
   it("should unwrap nested values in types", () => {
-    let Comp = reactivity(() => {
-      let a = {
+    const Comp = reactivity(() => {
+      const a = {
         b: ref(0),
       };
 
-      let c = ref(a);
+      const c = ref(a);
 
       expect(typeof (c.value.b + 1)).toBe("number");
       return () => <div />;
@@ -179,8 +179,8 @@ describe("reactivity/ref", () => {
   });
 
   it("should NOT unwrap ref types nested inside arrays", () => {
-    let Comp = reactivity(() => {
-      let arr = ref([1, ref(3)]).value;
+    const Comp = reactivity(() => {
+      const arr = ref([1, ref(3)]).value;
       expect(isRef(arr[0])).toBe(false);
       expect(isRef(arr[1])).toBe(true);
       expect((arr[1] as Ref).value).toBe(3);
@@ -193,12 +193,12 @@ describe("reactivity/ref", () => {
   });
 
   it("should unwrap ref types as props of arrays", () => {
-    let Comp = reactivity(() => {
-      let arr = [ref(0)];
-      let symbolKey = Symbol("");
+    const Comp = reactivity(() => {
+      const arr = [ref(0)];
+      const symbolKey = Symbol("");
       arr["" as any] = ref(1);
       arr[symbolKey as any] = ref(2);
-      let arrRef = ref(arr).value;
+      const arrRef = ref(arr).value;
       expect(isRef(arrRef[0])).toBe(true);
       expect(isRef(arrRef["" as any])).toBe(false);
       expect(isRef(arrRef[symbolKey as any])).toBe(false);
@@ -213,15 +213,15 @@ describe("reactivity/ref", () => {
   });
 
   it("should keep tuple types", () => {
-    let Comp = reactivity(() => {
-      let tuple: [number, string, { a: number }, () => number, Ref<number>] = [
+    const Comp = reactivity(() => {
+      const tuple: [number, string, { a: number }, () => number, Ref<number>] = [
         0,
         "1",
         { a: 1 },
         () => 0,
         ref(0),
       ];
-      let tupleRef = ref(tuple);
+      const tupleRef = ref(tuple);
 
       tupleRef.value[0]++;
       expect(tupleRef.value[0]).toBe(1);
@@ -241,9 +241,9 @@ describe("reactivity/ref", () => {
   });
 
   it("should keep symbols", () => {
-    let Comp = reactivity(() => {
-      let customSymbol = Symbol();
-      let obj = {
+    const Comp = reactivity(() => {
+      const customSymbol = Symbol();
+      const obj = {
         [Symbol.asyncIterator]: ref(1),
         [Symbol.hasInstance]: { a: ref("a") },
         [Symbol.isConcatSpreadable]: { b: ref(true) },
@@ -260,9 +260,9 @@ describe("reactivity/ref", () => {
         [customSymbol]: { arr: [ref(1)] },
       };
 
-      let objRef = ref(obj);
+      const objRef = ref(obj);
 
-      let keys: (keyof typeof obj)[] = [
+      const keys: (keyof typeof obj)[] = [
         Symbol.asyncIterator,
         Symbol.hasInstance,
         Symbol.isConcatSpreadable,
@@ -291,7 +291,7 @@ describe("reactivity/ref", () => {
   });
 
   test("unref", () => {
-    let Comp = reactivity(() => {
+    const Comp = reactivity(() => {
       expect(unref(1)).toBe(1);
       expect(unref(ref(1))).toBe(1);
       return () => <div />;
@@ -306,7 +306,7 @@ describe("reactivity/ref", () => {
     let sref;
 
     let dummy;
-    let Comp = reactivity(() => {
+    const Comp = reactivity(() => {
       sref = shallowRef({ a: 1 });
       expect(isReactive(sref.value)).toBe(false);
 
@@ -332,7 +332,7 @@ describe("reactivity/ref", () => {
     let sref;
     let dummy;
 
-    let Comp = reactivity(() => {
+    const Comp = reactivity(() => {
       sref = shallowRef({ a: 1 });
 
       effect(() => {
@@ -363,7 +363,7 @@ describe("reactivity/ref", () => {
   });
 
   test("isRef", () => {
-    let Comp = reactivity(() => {
+    const Comp = reactivity(() => {
       expect(isRef(ref(1))).toBe(true);
       expect(isRef(computed(() => 1))).toBe(true);
 
@@ -385,7 +385,7 @@ describe("reactivity/ref", () => {
     let r;
     let dummyX;
 
-    let Comp = reactivity(() => {
+    const Comp = reactivity(() => {
       a = reactive({
         x: 1,
       });
@@ -442,9 +442,9 @@ describe("reactivity/ref", () => {
   });
 
   test("toRef default value", () => {
-    let Comp = reactivity(() => {
-      let a: { x: number | undefined } = { x: undefined };
-      let x = toRef(a, "x", 1);
+    const Comp = reactivity(() => {
+      const a: { x: number | undefined } = { x: undefined };
+      const x = toRef(a, "x", 1);
       expect(x.value).toBe(1);
 
       a.x = 2;
@@ -461,8 +461,8 @@ describe("reactivity/ref", () => {
   });
 
   test("toRef getter", () => {
-    let Comp = reactivity(() => {
-      let x = toRef(() => 1);
+    const Comp = reactivity(() => {
+      const x = toRef(() => 1);
       expect(x.value).toBe(1);
       expect(isRef(x)).toBe(true);
       expect(unref(x)).toBe(1);
@@ -479,13 +479,13 @@ describe("reactivity/ref", () => {
   });
 
   test("toRefs", () => {
-    let Comp = reactivity(() => {
-      let a = reactive({
+    const Comp = reactivity(() => {
+      const a = reactive({
         x: 1,
         y: 2,
       });
 
-      let { x, y } = toRefs(a);
+      const { x, y } = toRefs(a);
 
       expect(isRef(x)).toBe(true);
       expect(isRef(y)).toBe(true);
@@ -527,7 +527,7 @@ describe("reactivity/ref", () => {
   });
 
   test("toRefs should warn on plain object", () => {
-    let Comp = reactivity(() => {
+    const Comp = reactivity(() => {
       toRefs({});
       expect(`toRefs() expects a reactive object`).toHaveBeenWarned();
       return () => <div />;
@@ -539,7 +539,7 @@ describe("reactivity/ref", () => {
   });
 
   test("toRefs should warn on plain array", () => {
-    let Comp = reactivity(() => {
+    const Comp = reactivity(() => {
       toRefs([]);
       expect(`toRefs() expects a reactive object`).toHaveBeenWarned();
       return () => <div />;
@@ -551,9 +551,9 @@ describe("reactivity/ref", () => {
   });
 
   test("toRefs reactive array", () => {
-    let Comp = reactivity(() => {
-      let arr = reactive(["a", "b", "c"]);
-      let refs = toRefs(arr);
+    const Comp = reactivity(() => {
+      const arr = reactive(["a", "b", "c"]);
+      const refs = toRefs(arr);
 
       expect(Array.isArray(refs)).toBe(true);
 
@@ -577,7 +577,7 @@ describe("reactivity/ref", () => {
     let custom;
 
     let dummy;
-    let Comp = reactivity(() => {
+    const Comp = reactivity(() => {
       value = 1;
 
       custom = customRef((track, trigger) => ({
@@ -623,7 +623,7 @@ describe("reactivity/ref", () => {
 
     let b;
     let spy2;
-    let Comp = reactivity(() => {
+    const Comp = reactivity(() => {
       obj = reactive({ count: 0 });
       a = ref(obj);
       spy1 = vi.fn(() => a.value);
@@ -657,7 +657,7 @@ describe("reactivity/ref", () => {
     let s;
     let rr;
     let a;
-    let Comp = reactivity(() => {
+    const Comp = reactivity(() => {
       original = {};
       r = reactive(original);
       s = shallowReactive(original);

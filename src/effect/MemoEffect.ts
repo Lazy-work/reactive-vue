@@ -12,8 +12,6 @@ class MemoEffect<T> extends AbstractEffect {
   #ref?: ComputedRef<T>;
   #previousState: T | null;
   #shouldCompute = true;
-  #onTrack?: (event: DebuggerEvent) => void;
-  #onTrigger?: (event: DebuggerEvent) => void;
   #hadChanged = true;
 
   constructor(
@@ -25,13 +23,11 @@ class MemoEffect<T> extends AbstractEffect {
     onTrack?: (event: DebuggerEvent) => void,
     onTrigger?: (event: DebuggerEvent) => void,
   ) {
-    super(id, context);
+    super(id, context, onTrack, onTrigger);
     this.#getter = getter;
     this.#ref = ref;
     this.#storeIndex = storeIndex;
     this.#previousState = null;
-    this.#onTrack = onTrack;
-    this.#onTrigger = onTrigger;
   }
 
   get ref() {
@@ -46,9 +42,17 @@ class MemoEffect<T> extends AbstractEffect {
     return this._id;
   }
 
+  get onTrack() {
+    return this._onTrack;
+  }
+
+  get onTrigger() {
+    return this._onTrigger;
+  }
+
   run() {
     this.#shouldCompute = true;
-    this.#ref.trigger();
+    this.#ref?.trigger();
   }
 
   get shouldCompute() {

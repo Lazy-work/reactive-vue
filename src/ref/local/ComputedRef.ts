@@ -17,7 +17,7 @@ class ComputedRef<T = any> extends LocalRef<T> {
     : NOOP;
   [ReactiveFlags.IS_READONLY] = true;
 
-  constructor(context: Context, index: number, effect: MemoEffect<T>, setter?) {
+  constructor(context: Context, index: number, effect: MemoEffect<T>, setter?: Setter<T>) {
     super(context)
     this._index = index;
     this._effect = effect;

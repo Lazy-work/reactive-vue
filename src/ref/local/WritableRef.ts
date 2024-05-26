@@ -2,9 +2,7 @@ import type Context from '../../context/local';
 import LocalRef from './LocalRef';
 
 type Setter<T> = (value: T) => void;
-function toBinary(value: number, length = 4) {
-  return value.toString(2).padStart(length, '0');
-}
+
 class WritableRef<T = any> extends LocalRef<T> {
   protected index: number;
   #setter: Setter<T>;

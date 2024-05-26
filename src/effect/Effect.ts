@@ -6,16 +6,12 @@ class Effect extends AbstractEffect {
   #executed: boolean;
   #callback: any;
   #cleanup: (() => void) | undefined;
-  #onTrack?:(event: DebuggerEvent) => void;
-  #onTrigger?:(event: DebuggerEvent) => void;
 
   constructor(id: number, context: IContext, callback: any, onTrack?: (event: DebuggerEvent) => void, onTrigger?: (event: DebuggerEvent) => void) {
-    super(id, context);
+    super(id, context, onTrack, onTrigger);
     this.#callback = callback;
     this.#cleanup = undefined;
     this.#executed = false;
-    this.#onTrack = onTrack;
-    this.#onTrigger = onTrigger;
   }
 
   get cleanup() {
@@ -23,11 +19,11 @@ class Effect extends AbstractEffect {
   }
 
   get onTrack() {
-    return this.#onTrack;
+    return this._onTrack;
   }
 
   get onTrigger() {
-    return this.#onTrigger;
+    return this._onTrigger;
   }
 
   get id() {

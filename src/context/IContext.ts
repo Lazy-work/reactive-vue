@@ -3,7 +3,7 @@ import AbstractEffect from "../effect/AbstractEffect"
 import Effect from "../effect/Effect"
 import EffectScope from "../effect/EffectScope";
 import WatcherEffect from "../effect/WatcherEffect";
-import { WatchEffectOptions } from "../types";
+import { WatchEffectOptions, WatchOptions, WatchSource } from "../types";
 import { EffectType, LifecycleType, WatcherType } from "./local"
 
 interface IContext {
@@ -45,7 +45,7 @@ interface IContext {
     createMemoEffect(getterOrOptions: any): AbstractEffect
     createLifecycleHook(type: LifecycleType, callback: any): void
     createEffect(type: EffectType, callback: any, options: WatchEffectOptions): Effect
-    createWatcher<T>(type: WatcherType, callback: any, source, options): WatcherEffect<T>
+    createWatcher<T>(type: WatcherType, callback: any, source: WatchSource<T>, options: WatchOptions): WatcherEffect<T>
     createEffectScope(detached?: boolean): EffectScope;
 }
 

@@ -175,7 +175,7 @@ describe("reactivity/computed", () => {
 
   // #5720
   it("should invalidate before non-computed effects", () => {
-    let plusOneValues: number[] = [];
+    const plusOneValues: number[] = [];
     const n = ref(0);
     const plusOne = computed(() => n.value + 1);
     effect(() => {
@@ -225,7 +225,7 @@ describe("reactivity/computed", () => {
   });
 
   it("debug: onTrack", () => {
-    let events: DebuggerEvent[] = [];
+    const events: DebuggerEvent[] = [];
     const onTrack = vi.fn((e: DebuggerEvent) => {
       events.push(e);
     });
@@ -258,7 +258,7 @@ describe("reactivity/computed", () => {
   });
 
   it("debug: onTrigger", () => {
-    let events: DebuggerEvent[] = [];
+    const events: DebuggerEvent[] = [];
     const onTrigger = vi.fn((e: DebuggerEvent) => {
       events.push(e);
     });

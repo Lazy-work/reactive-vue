@@ -5,15 +5,16 @@ import { NOOP } from '@vue/shared';
 import { warn } from '../../reactive/warning';
 import GlobalRef from './GlobalRef';
 
+type Setter<T> = (value?: T) => void;
 class ComputedRef<T = any> extends GlobalRef<T> {
-  private _setter? = __DEV__
+  private _setter?: Setter<T> = __DEV__
     ? () => {
       warn('Write operation failed: computed value is readonly')
     }
     : NOOP;
   [ReactiveFlags.IS_READONLY] = true;
 
-  constructor(private _index: number, private _effect: MemoEffect<T>, setter?) {
+  constructor(private _index: number, private _effect: MemoEffect<T>, setter?: Setter<T>) {
     super()
     if (setter) {
       this[ReactiveFlags.IS_READONLY] = false;
@@ -39,10 +40,10 @@ class ComputedRef<T = any> extends GlobalRef<T> {
 
 
   set value(newValue: T) {
-    this._setter(newValue);
+    this._setter?.(newValue);
   }
-  4
-  toReadonly(): ComputedRef<T> {
+  
+  toReadonly() {
     const self = this;
     return {
       __v_isRef: true,

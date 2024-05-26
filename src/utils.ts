@@ -17,7 +17,3 @@ export function mustBeOutsideComponent() {
     throw new Error('You cannot use a directive inside a none reactive component');
   }
 }
-
-export function toBin(value: number, length = 4) {
-  return value.toString(2).padStart(length, '0');
-}
