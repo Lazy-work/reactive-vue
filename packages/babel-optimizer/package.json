@@ -1,0 +1,40 @@
+{
+  "name": "babel-plugin-reactive-vue-optimizer",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./dist/babel-optimizer.cjs.js",
+  "module": "./dist/babel-optimizer.esm-bundler.js",
+  "scripts": {
+    "test": "vitest --",
+    "build": "rimraf dist && rollup -c"
+  },
+  "exports": {
+    ".": {
+      "import": {
+        "default": "./dist/babel-optimizer.esm-bundler.js"
+      },
+      "require": {
+        "default": "./dist/babel-optimizer.cjs.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-replace": "^5.0.5",
+    "esbuild": "^0.20.2",
+    "prettier": "^3.2.5",
+    "rimraf": "^5.0.5",
+    "rollup": "^4.17.2",
+    "rollup-plugin-esbuild": "^6.1.1",
+    "vitest": "^1.5.2"
+  },
+  "peerDependencies": {
+    "@lazywork/reactive-vue-jsx-runtime": "workspace:^"
+  }
+}

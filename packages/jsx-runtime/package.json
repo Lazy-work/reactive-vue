@@ -1,0 +1,31 @@
+{
+  "name": "@lazywork/reactive-vue-jsx-runtime",
+  "version": "0.0.0",
+  "type": "module",
+  "module": "./dist/reactive-vue-jsx-runtime.esm-bundler.js",
+  "main": "./dist/reactive-vue-jsx-runtime.cjs.js",
+  "scripts": {
+    "test": "vitest --",
+    "build": "rimraf dist && rollup -c"
+  },
+  "exports": {
+    ".": {
+      "import": {
+        "default": "./dist/reactive-vue-jsx-runtime.esm-bundler.js"
+      },
+      "require": {
+        "default": "./dist/reactive-vue-jsx-runtime.cjs.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "types",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@lazywork/reactive-vue": "workspace:^"
+  }
+}
