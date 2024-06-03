@@ -51,7 +51,7 @@ const handleReactiveComponent = {
 
     if (!parent) return;
     parent.insertBefore(cbVar);
-    if (path.parentPath.isJSXElement()) {
+    if (path.parentPath.isJSXElement() || path.parentPath.isJSXFragment()) {
       path.replaceWith(t.JSXExpressionContainer(t.callExpression(this.rsxIdentifier, [cbId])));
     } else {
       path.replaceWith(t.callExpression(this.rsxIdentifier, [cbId]));
