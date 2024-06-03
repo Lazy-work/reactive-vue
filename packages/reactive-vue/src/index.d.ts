@@ -29,6 +29,40 @@ export declare function useReactive<T extends object, K extends keyof T>(
     keys: K[]
 ): [{ [P in Extract<keyof T, K>]: T[P] }, ReactiveSetter<K, T[K]>];
 
+export interface App<HostElement = any> {
+    version: string
+    config: AppConfig
+  
+    use<Options extends unknown[]>(
+      plugin: Plugin<Options>,
+      ...options: Options
+    ): this
+    use<Options>(plugin: Plugin<Options>, options: Options): this
+  
+    mixin(mixin: ComponentOptions): this
+    component(name: string): Component | undefined
+    component(name: string, component: Component | DefineComponent): this
+    directive<T = any, V = any>(name: string): Directive<T, V> | undefined
+    directive<T = any, V = any>(name: string, directive: Directive<T, V>): this
+    mount(
+      rootContainer: HostElement | string,
+      isHydrate?: boolean,
+      namespace?: boolean | ElementNamespace,
+    ): ComponentPublicInstance
+    unmount(): void
+    provide<T>(key: InjectionKey<T> | string, value: T): this
+  
+    /**
+     * Runs a function with the app as active instance. This allows using of `inject()` within the function to get access
+     * to variables provided via `app.provide()`.
+     *
+     * @param fn - function to run with the app as active instance
+     */
+    runWithContext<T>(fn: () => T): T
+  }
+
+export declare function AppProvider({ app, children }: { app: App, children: ReactNode }): ReactNode;
+export declare function createApp(): App;
 export declare function useContext<T>(context: React.Context<T>): T;
 export declare function useDeferredValue<T>(initialValue: Ref<T>): Readonly<Ref<T>>;
 export declare function createHook<T>(reactiveHook: T): T;

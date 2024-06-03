@@ -5,7 +5,7 @@ type AnyFunction = (...args: any[]) => any;
 type ReactHook = (...args: any[]) => any;
 interface ReactRef<T> extends AnyFunction {
     value: T;
-  }
+}
 
 type IfAny<T, Y, N> = 0 extends 1 & T ? Y : N;
 export type Prettify<T> = {
@@ -29,6 +29,86 @@ export declare function useReactive<T extends object, K extends keyof T>(
     keys: K[]
 ): [{ [P in Extract<keyof T, K>]: T[P] }, ReactiveSetter<K, T[K]>];
 
+type PluginInstallFunction<Options = any[]> = Options extends unknown[]
+    ? (app: App, ...options: Options) => any
+    : (app: App, options: Options) => any
+
+export type ObjectPlugin<Options = any[]> = {
+    install: PluginInstallFunction<Options>
+}
+export type FunctionPlugin<Options = any[]> = PluginInstallFunction<Options> &
+    Partial<ObjectPlugin<Options>>
+
+export type Plugin<Options = any[]> =
+    | FunctionPlugin<Options>
+    | ObjectPlugin<Options>
+
+export interface AppConfig {
+    // @private
+    readonly isNativeTag: (tag: string) => boolean
+
+    performance: boolean
+    optionMergeStrategies: Record<string, OptionMergeFunction>
+    globalProperties: any & Record<string, any>
+    errorHandler?: (
+        err: unknown,
+        instance: any | null,
+        info: string,
+    ) => void
+    warnHandler?: (
+        msg: string,
+        instance: any | null,
+        trace: string,
+    ) => void
+
+    /**
+     * Options to pass to `@vue/compiler-dom`.
+     * Only supported in runtime compiler build.
+     */
+    compilerOptions: any
+
+    /**
+     * @deprecated use config.compilerOptions.isCustomElement
+     */
+    isCustomElement?: (tag: string) => boolean
+
+    /**
+     * TODO document for 3.5
+     * Enable warnings for computed getters that recursively trigger itself.
+     */
+    warnRecursiveComputed?: boolean
+}
+
+export interface App<HostElement = any> {
+    version: string
+    config: AppConfig
+
+    use<Options extends unknown[]>(
+        plugin: Plugin<Options>,
+        ...options: Options
+    ): this
+    use<Options>(plugin: Plugin<Options>, options: Options): this
+
+    mixin(mixin: any): this
+    component(name: string): any | undefined
+    component(name: string, component: any): this
+    directive<T = any, V = any>(name: string): any | undefined
+    directive<T = any, V = any>(name: string, directive: any): this
+    mount()
+    unmount(): void
+    provide<T>(key: InjectionKey<T> | string, value: T): this
+
+    /**
+     * Runs a function with the app as active instance. This allows using of `inject()` within the function to get access
+     * to variables provided via `app.provide()`.
+     *
+     * @param fn - function to run with the app as active instance
+     */
+    runWithContext<T>(fn: () => T): T
+}
+
+export declare function AppProvider({ app, children }: { app: App, children?: ReactNode }): ReactNode;
+export declare function createApp(): App;
 export declare function useContext<T>(context: React.Context<T>): T;
 export declare function useDeferredValue<T>(initialValue: Ref<T>): Readonly<Ref<T>>;
 export declare function createHook<T>(reactiveHook: T): T;
@@ -46,7 +126,7 @@ interface ToReactiveHookOptions {
      * If `true`, the returned reactive hook will be a shallow reactive.
      */
     shallow?: boolean;
-    
+
     /**
      * The name of the reactive hook.
      */
