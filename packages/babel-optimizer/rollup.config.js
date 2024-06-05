@@ -18,7 +18,7 @@ const plugins = [
   esbuild({
     tsconfig: path.resolve(__dirname, "tsconfig.json"),
     sourceMap: true,
-    target: "es2016"
+    target: "esnext"
   }),
 ];
 

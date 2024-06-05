@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import App from "./app";
 import { reactivity } from "../management";
 import { onMounted, onUnmounted } from "../lifecycle";
