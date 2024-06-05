@@ -1,30 +1,18 @@
-import { act, render, screen } from "@testing-library/react";
-// import '@testing-library/jest-dom';
+import { act, render } from "@testing-library/react";
+
 import {
-  computed,
-  createReactivityDirective,
-  useDeferredValue,
   defineProps,
   watchLayoutEffect,
-  onMounted,
-  onUnmounted,
   onUpdated,
-  reactive,
   reactivity,
   reactRef,
-  isRef,
-  shallowReactive,
   ref,
-  tickListener,
   toReactiveHook,
   toReactiveHookShallow,
-  watch,
   watchEffect,
   watchPostEffect,
   watchSyncEffect,
-  toRef,
 } from "../src";
-import { createContext, getGlobalContext } from "../src/management";
 import React, { useCallback, useEffect, useState } from "react";
 
 const effects = [watchEffect, watchPostEffect, watchSyncEffect, watchLayoutEffect];
@@ -229,56 +217,7 @@ describe("testing effects", () => {
 
     await endWatchEffect;
   });
-
-  it("should await the nextTick", async () => {
-    const manager = createContext();
-    const rc = createReactivityDirective(manager);
-    const VueComponent = rc((props: { callback: () => void }) => {
-      const count = ref(1);
-      const nextTick = tickListener();
-      const buttonRef = reactRef(null);
-
-      function incrementCount() {
-        count.value++;
-
-        props.callback(nextTick, buttonRef.value);
-      }
-
-      return () => (
-        <button ref={buttonRef} id="counter" onClick={incrementCount}>
-          Count : {count.value}
-        </button>
-      );
-    });
-
-    let resolve;
-    let reject;
-
-    const endWatchEffect = new Promise<true>((res, rej) => {
-      resolve = res;
-      reject = rej;
-    });
-
-    const callback = async (nextTick, button) => {
-      try {
-        expect(button.textContent).toBe("Count : 1");
-
-        await nextTick();
-
-        expect(button.textContent).toBe("Count : 2");
-        resolve(true);
-      } catch (e) {
-        reject(e);
-      }
-    };
-    const { container } = render(<VueComponent callback={callback} />);
-
-    const counter = container.querySelector("#counter") as HTMLButtonElement;
-    counter.click();
-
-    await endWatchEffect;
-  });
-
+  
   it("should throw an error if a directive is used in none reactive component", async () => {
     function ReactComponent() {
       generateRedZone(5);

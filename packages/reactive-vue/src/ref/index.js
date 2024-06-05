@@ -144,13 +144,6 @@ export function reactRef(initialValue) {
   return scope.reactRef.call(context, initialValue);
 }
 
-export function tickListener() {
-  mustBeReactiveComponent();
-  const context = getContext();
-  return () => context.createTickWaiter();
-}
-
-
 export function toReactiveHook(hook, options = {}) {
   return (...args) => {
     mustBeReactiveComponent();

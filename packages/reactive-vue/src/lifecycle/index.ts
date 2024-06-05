@@ -1,22 +1,25 @@
 import { LifecycleType } from "../context/local";
 import { getContext } from '../management/setting';
 
-const NOOP = () => {};
-let tickTrigger: (value?: unknown) => void = NOOP;
-let currentTick = new Promise((resolve) => (tickTrigger = resolve));
+const resolvedPromise = /*#__PURE__*/ Promise.resolve() as Promise<any>
+let currentFlushPromise: Promise<void> | null = null
 
-function createNextTick() {
-    let resolve: (value?: unknown) => void = NOOP;
-    currentTick = new Promise((r) => (resolve = r));
+export function nextTick<T = void, R = void>(
+    this: T,
+    fn?: (this: T) => R,
+): Promise<Awaited<R>> {
+    const p = currentFlushPromise || resolvedPromise
+    return fn ? p.then(this ? fn.bind(this) : fn) : p
+}
+
+export function queueFlush() {
+    let resolve;
+    currentFlushPromise = new Promise((res) => { resolve = res }).then(flushJobs);
     return resolve;
 }
-export function nextTick() {
-    return currentTick;
-}
 
-export function tick() {
-    tickTrigger();
-    tickTrigger = createNextTick();
+function flushJobs() {
+    currentFlushPromise = null
 }
 
 export function hasInjectionContext() {

@@ -1,6 +1,7 @@
 import { act, render } from '@testing-library/react';
 import { isReactive, reactive, toRaw, watchEffect as effect } from '../../../src/index';
 import { reactivity } from '../../../src/management';
+import { nextTick } from '../../../src/lifecycle';
 
 describe('reactivity/collections', () => {
   function coverCollectionFn(collection: Map<any, any>, fnName: string) {
@@ -19,7 +20,7 @@ describe('reactivity/collections', () => {
       expect(observed).toBeInstanceOf(Map);
     });
 
-    it('should observe mutations', () => {
+    it('should observe mutations', async () => {
       let dummy;
       let map;
       const Comp = reactivity(() => {
@@ -30,18 +31,24 @@ describe('reactivity/collections', () => {
         return () => <div />;
       });
 
-      render(<Comp />);
-
+      act(() => {
+        render(<Comp />);
+      });
+      await nextTick();
       expect(dummy).toBe(undefined);
-      act(() => map.set('key', 'value'));
+      map.set('key', 'value');
+
+      await nextTick();
       expect(dummy).toBe('value');
-      act(() => map.set('key', 'value2'));
+      map.set('key', 'value2');
+      await nextTick();
       expect(dummy).toBe('value2');
-      act(() => map.delete('key'));
+      map.delete('key');
+      await nextTick();
       expect(dummy).toBe(undefined);
     });
 
-    it('should observe mutations with observed value as key', () => {
+    it('should observe mutations with observed value as key', async () => {
       let dummy;
       let key;
       let value;
@@ -58,15 +65,18 @@ describe('reactivity/collections', () => {
       });
 
       render(<Comp />);
+      await nextTick();
 
       expect(dummy).toBe(undefined);
-      act(() => map.set(key, value));
+      map.set(key, value);
+      await nextTick();
       expect(dummy).toBe(value);
-      act(() => map.delete(key));
+      map.delete(key);
+      await nextTick();
       expect(dummy).toBe(undefined);
     });
 
-    it('should observe size mutations', () => {
+    it('should observe size mutations', async () => {
       let dummy;
       let map;
 
@@ -78,20 +88,21 @@ describe('reactivity/collections', () => {
       });
       render(<Comp />);
 
+      await nextTick();
       expect(dummy).toBe(0);
-      act(() => {
-        map.set('key1', 'value');
-        map.set('key2', 'value2');
-      });
+
+      map.set('key1', 'value');
+      map.set('key2', 'value2');
+
+      await nextTick();
 
       expect(dummy).toBe(2);
-      act(() => {
-        map.delete('key1');
-      });
+      map.delete('key1');
+      await nextTick();
       expect(dummy).toBe(1);
-      act(() => {
-        map.clear();
-      });
+      map.clear();
+
+      await nextTick();
       expect(dummy).toBe(0);
     });
 
@@ -673,7 +684,7 @@ describe('reactivity/collections', () => {
     });
 
     // #877
-    it('should not trigger key iteration when setting existing keys', () => {
+    it('should not trigger key iteration when setting existing keys', async () => {
       let map;
       let spy;
 
@@ -695,22 +706,19 @@ describe('reactivity/collections', () => {
       expect(spy).toHaveBeenCalledTimes(1);
       expect(spy.mock.calls[0][0]).toMatchObject([]);
 
-      act(() => {
-        map.set('a', 0);
-      });
+      map.set('a', 0);
+      await nextTick();
       expect(spy).toHaveBeenCalledTimes(2);
       expect(spy.mock.calls[1][0]).toMatchObject(['a']);
 
-      act(() => {
-        map.set('b', 0);
-      });
+      map.set('b', 0);
+      await nextTick();
       expect(spy).toHaveBeenCalledTimes(3);
       expect(spy.mock.calls[2][0]).toMatchObject(['a', 'b']);
 
       // keys didn't change, should not trigger
-      act(() => {
-        map.set('b', 1);
-      });
+      map.set('b', 1);
+      await nextTick();
       expect(spy).toHaveBeenCalledTimes(3);
     });
 

@@ -24,8 +24,9 @@ import { mustBeReactiveComponent } from '../../utils';
 import ComputedRef from '../../ref/local/ComputedRef';
 import type IContext from '../IContext';
 import { RENDER_EFFECT } from '../../constants';
-import { tick } from '../../lifecycle';
+import { queueFlush } from '../../lifecycle';
 import EffectScope, { getCurrentScope, setCurrentScope } from '../../effect/EffectScope';
+import { NOOP } from '@vue/shared';
 
 const nativeHooks = [
   React.useReducer,
@@ -64,11 +65,13 @@ export enum LifecycleType {
   ON_BEFORE_UNMOUNTED,
   ON_UNMOUNTED,
 }
-
+let id = 0;
 class Context implements IContext {
+  #id = id++;
   #parent?: IContext = getParentContext();
   #elements: WeakMap<any, any> = new WeakMap();
   #provider: Map<any, any> = new Map();
+  #tick: () => void = NOOP;
   #renderTrigger: () => void;
   #hooks: any[] = [];
   #propsKeys: string[] = [];
@@ -103,7 +106,6 @@ class Context implements IContext {
   #mountEffects: OnMountedLifecycle[] = [];
   #unmountedEffects: OnUnmountedLifecycle[] = [];
 
-  #tickQueue: (() => void)[] = [];
   #shouldRender = false;
   #executed = false;
   #nbExecution = 0;
@@ -135,7 +137,6 @@ class Context implements IContext {
     this.#scope.off();
     this.#currentEffect = previousEffect;
     this.#executed = true;
-    tick();
     this.#shouldRender = false;
     return result;
   }
@@ -153,6 +154,7 @@ class Context implements IContext {
 
   init() {
     this.#nbExecution++;
+    if (!this.#executed) this.#tick = queueFlush();
   }
 
   processHooks() {
@@ -234,7 +236,6 @@ class Context implements IContext {
     if (this.#executed) for (const effect of this.#onBeforeUpdateEffects) effect();
 
     useEffect(() => {
-      // for (const tick of this.#tickQueue) tick();
       if (this.#nbExecution > 1) { for (const effect of this.#onUpdatedEffects) effect.run(); }
       this.computeEffects(this.#postWatcherEffects);
       this.computeEffects(this.#postEffects);
@@ -244,7 +245,11 @@ class Context implements IContext {
     useEffect(() => {
       this.#mounted = true;
       for (const effect of this.#mountEffects) effect.run();
-    }, [])
+    }, []);
+
+    useEffect(() => {
+      this.#tick();
+    });
 
     // on unmount effects
     useEffect(
@@ -282,6 +287,9 @@ class Context implements IContext {
     }
   }
 
+  get id() {
+    return this.#id;
+  }
   get runningOnUpdated() {
     return this.#runningOnUpdated;
   }
@@ -298,8 +306,6 @@ class Context implements IContext {
     return this.#store[index];
   }
 
-
-
   addToStore(value: any) {
     this.#store[this.#storeCursor] = value;
     const index = this.#storeCursor;
@@ -315,6 +321,10 @@ class Context implements IContext {
 
   get store() {
     return this.#store;
+  }
+
+  get scope() {
+    return this.#scope;
   }
 
   get pendingEffects() {
@@ -375,16 +385,16 @@ class Context implements IContext {
         if (this.#pendingEffects[slot] & digit && !(this.#disabledEffects[slot] & digit)) {
           effect.force();
         }
-      } 
-      
+      }
+
       for (const effect of this.#postWatcherEffects) {
         const digit = 1 << (effect.id % 32);
         const slot = Math.floor(effect.id / 32);
         if (this.#pendingEffects[slot] & digit && !(this.#disabledEffects[slot] & digit)) {
           effect.force();
         }
-      } 
-      
+      }
+
       for (const effect of this.#syncWatcherEffects) {
         const digit = 1 << (effect.id % 32);
         const slot = Math.floor(effect.id / 32);
@@ -597,14 +607,6 @@ class Context implements IContext {
   createEffectScope(detached?: boolean): EffectScope {
     return new EffectScope(this, detached);
   }
-  createTickWaiter() {
-    mustBeReactiveComponent();
-    let resolve: (value?: unknown) => void;
-
-    const promise = new Promise((res) => void (resolve = res));
-    this.#tickQueue.push(() => resolve());
-    return promise;
-  }
 
   setupState() {
     const [s, setState] = useState(true);
@@ -612,6 +614,7 @@ class Context implements IContext {
     this.#renderTrigger = () => {
       setState(!s);
       this.#shouldRender = true;
+      this.#tick = queueFlush();
     };
   }
 
