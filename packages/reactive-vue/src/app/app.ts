@@ -74,7 +74,7 @@ class App {
     }
     mixin() { }
     provide(key, value) {
-        provide(key, value);
+        globalThis.__v_globalContext.provide(key, value);
     }
     runWithContext(callback) {
         return callback();
