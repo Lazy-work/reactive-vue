@@ -53,6 +53,9 @@
     "typescript": "^5.2.2",
     "vitest": "^1.5.2"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "release-it": {
     "git": false,
     "plugins": {

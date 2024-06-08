@@ -39,6 +39,9 @@
   "peerDependencies": {
     "@lazywork/reactive-vue-jsx-runtime": "workspace:^"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "release-it": {
     "git": false,
     "plugins": {
