@@ -58,9 +58,7 @@ const handleReactiveComponent = {
     }
   },
 };
-function capitalizeFirstLetter(string) {
-  return string.charAt(0).toUpperCase() + string.slice(1);
-}
+
 export default function (babel) {
   const { types: t } = babel;
   const seen = [];

@@ -161,7 +161,8 @@ class GlobalContext implements IContext {
     const effectId = effect.id;
     const slot = Math.floor(effectId / 32);
     const digit = 1 << (effectId % 32);
-    if (this.#disabledEffects[slot] & digit) return;
+    const isDisabled = this.#disabledEffects[slot] & digit;
+    if (isDisabled) return;
     if (force && effect instanceof WatcherEffect) {
       effect.force();
     }
@@ -172,7 +173,9 @@ class GlobalContext implements IContext {
     for (let i = 0; i < effects.length; i++) {
       const digit = 1 << (effects[i].id % 32);
       const slot = Math.floor(effects[i].id / 32);
-      if (digit & this.#pendingEffects[slot] && !(this.#disabledEffects[slot] & digit)) {
+      const isPending = digit & this.#pendingEffects[slot];
+      const isDisabled = this.#disabledEffects[slot] & digit;
+      if (isPending && !isDisabled) {
         this.#pendingEffects[slot] &= ~digit;
         effects[i].run();
         this.#pendingEffects[slot] &= ~digit;
@@ -188,7 +191,9 @@ class GlobalContext implements IContext {
       for (const effect of this.#watcherEffects) {
         const digit = 1 << (effect.id % 32);
         const slot = Math.floor(effect.id / 32);
-        if (this.#pendingEffects[slot] & digit && !(this.#disabledEffects[slot] & digit)) {
+        const isPending = digit & this.#pendingEffects[slot];
+        const isDisabled = this.#disabledEffects[slot] & digit;
+        if (isPending && !isDisabled) {
           effect.force();
         }
       }
