@@ -1,5 +1,6 @@
 {
   "git": {
+    "requireCleanWorkingDir": false,
     "commitMessage": "chore: release v${version}"
   },
   "github": {
@@ -22,6 +23,7 @@
         },
         {}
       ]
-    }
+    },
+    "release-it-pnpm": {}
   }
 }
