@@ -1,6 +1,7 @@
 {
   "name": "@lazywork/reactive-vue-jsx-runtime",
   "version": "0.0.0",
+  "packageManager": "pnpm@8.15.3",
   "type": "module",
   "module": "./dist/reactive-vue-jsx-runtime.esm-bundler.js",
   "main": "./dist/reactive-vue-jsx-runtime.cjs.js",
@@ -38,6 +39,9 @@
     "rollup-plugin-esbuild": "^6.1.1"
   },
   "release-it": {
-    "git": false
+    "git": false,
+    "plugins": {
+      "release-it-pnpm": {}
+    }
   }
 }

@@ -1,6 +1,7 @@
 {
   "name": "babel-plugin-reactive-vue-optimizer",
   "version": "0.0.0",
+  "packageManager": "pnpm@8.15.3",
   "type": "module",
   "main": "./dist/babel-optimizer.cjs.js",
   "module": "./dist/babel-optimizer.esm-bundler.js",
@@ -39,6 +40,9 @@
     "@lazywork/reactive-vue-jsx-runtime": "workspace:^"
   },
   "release-it": {
-    "git": false
+    "git": false,
+    "plugins": {
+      "release-it-pnpm": {}
+    }
   }
 }
