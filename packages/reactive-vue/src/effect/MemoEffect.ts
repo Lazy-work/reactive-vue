@@ -12,7 +12,7 @@ class MemoEffect<T> extends AbstractEffect {
   #ref?: ComputedRef<T>;
   #previousState: T | null;
   #shouldCompute = true;
-  #hadChanged = true;
+  #hasChanged = true;
 
   constructor(
     id: number,

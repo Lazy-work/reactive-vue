@@ -103,7 +103,7 @@ class Context implements IContext {
   #syncWatcherEffects: WatcherEffect<any>[] = [];
   #memoizedEffects: MemoEffect<any>[] = [];
   #onBeforeMountEffects: OnMountedLifecycle[] = [];
-  #mountEffects: OnMountedLifecycle[] = [];
+  #onMountedEffects: OnMountedLifecycle[] = [];
   #unmountedEffects: OnUnmountedLifecycle[] = [];
 
   #shouldRender = false;
@@ -206,7 +206,8 @@ class Context implements IContext {
     for (let i = 0; i < effects.length && this.#pendingSum > 0; i++) {
       const digit = 1 << (effects[i].id % 32);
       const slot = Math.floor(effects[i].id / 32);
-      if (digit & this.#pendingEffects[slot]) {
+      const isPending = digit & this.#pendingEffects[slot];
+      if (isPending) {
         this.#pendingEffects[slot] &= ~digit;
         effects[i].run();
         this.#pendingEffects[slot] &= ~digit;
@@ -235,16 +236,18 @@ class Context implements IContext {
 
     if (this.#executed) for (const effect of this.#onBeforeUpdateEffects) effect();
 
-    useEffect(() => {
-      if (this.#nbExecution > 1) { for (const effect of this.#onUpdatedEffects) effect.run(); }
-      this.computeEffects(this.#postWatcherEffects);
-      this.computeEffects(this.#postEffects);
-    });
+    if (this.#postWatcherEffects.length || this.#postEffects.length || this.#onUpdatedEffects.length) {
+      useEffect(() => {
+        if (this.#nbExecution > 1) { for (const effect of this.#onUpdatedEffects) effect.run(); }
+        this.computeEffects(this.#postWatcherEffects);
+        this.computeEffects(this.#postEffects);
+      });
+    }
 
     for (const effect of this.#onBeforeMountEffects) effect.run();
     useEffect(() => {
       this.#mounted = true;
-      for (const effect of this.#mountEffects) effect.run();
+      for (const effect of this.#onMountedEffects) effect.run();
     }, []);
 
     useEffect(() => {
@@ -268,17 +271,21 @@ class Context implements IContext {
       [],
     );
 
-    useLayoutEffect(() => {
-      this.computeEffects(this.#layoutEffects);
-    });
+    if (this.#layoutEffects.length) {
+      useLayoutEffect(() => {
+        this.computeEffects(this.#layoutEffects);
+      });
 
-    useLayoutEffect(() => () => this.computeCleanups(this.#layoutEffects), []);
+      useLayoutEffect(() => () => this.computeCleanups(this.#layoutEffects), []);
+    }
 
-    useInsertionEffect(() => {
-      this.computeEffects(this.#insertionEffects);
-    });
+    if (this.#insertionEffects.length) {
+      useInsertionEffect(() => {
+        this.computeEffects(this.#insertionEffects);
+      });
 
-    useInsertionEffect(() => () => this.computeCleanups(this.#insertionEffects), []);
+      useInsertionEffect(() => () => this.computeCleanups(this.#insertionEffects), []);
+    }
   }
 
   computeCleanups(effects: Effect[] | WatcherEffect<any>[]) {
@@ -382,7 +389,10 @@ class Context implements IContext {
       for (const effect of this.#preWatcherEffects) {
         const digit = 1 << (effect.id % 32);
         const slot = Math.floor(effect.id / 32);
-        if (this.#pendingEffects[slot] & digit && !(this.#disabledEffects[slot] & digit)) {
+        const isPending = digit & this.#pendingEffects[slot];
+        const isDisabled = this.#disabledEffects[slot] & digit;
+
+        if (isPending && !isDisabled) {
           effect.force();
         }
       }
@@ -390,7 +400,10 @@ class Context implements IContext {
       for (const effect of this.#postWatcherEffects) {
         const digit = 1 << (effect.id % 32);
         const slot = Math.floor(effect.id / 32);
-        if (this.#pendingEffects[slot] & digit && !(this.#disabledEffects[slot] & digit)) {
+        const isPending = digit & this.#pendingEffects[slot];
+        const isDisabled = this.#disabledEffects[slot] & digit;
+        
+        if (isPending && !isDisabled) {
           effect.force();
         }
       }
@@ -398,7 +411,10 @@ class Context implements IContext {
       for (const effect of this.#syncWatcherEffects) {
         const digit = 1 << (effect.id % 32);
         const slot = Math.floor(effect.id / 32);
-        if (this.#pendingEffects[slot] & digit && !(this.#disabledEffects[slot] & digit)) {
+        const isPending = digit & this.#pendingEffects[slot];
+        const isDisabled = this.#disabledEffects[slot] & digit;
+        
+        if (isPending && !isDisabled) {
           effect.force();
         }
       }
@@ -414,7 +430,9 @@ class Context implements IContext {
     const slot = Math.floor(effectId / 32);
     const digit = 1 << (effectId % 32);
 
-    if (digit & this.#disabledEffects[slot]) return;
+    const isDisabled = this.#disabledEffects[slot] & digit;
+    
+    if (isDisabled) return;
     this.#pendingEffects[slot] |= digit;
 
     if (this.#pendingEffects[slot]) this.#pendingSum |= 1 << slot;
@@ -528,7 +546,7 @@ class Context implements IContext {
         break;
       case LifecycleType.ON_MOUNTED:
         hook = new OnMountedLifecycle(this.#idEffect, this, callback);
-        this.#mountEffects.push(hook);
+        this.#onMountedEffects.push(hook);
         break;
       case LifecycleType.ON_BEFORE_UPDATE:
         this.#onBeforeUpdateEffects.push(callback);
