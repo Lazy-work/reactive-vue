@@ -6,7 +6,8 @@
   "module": "./dist/babel-optimizer.esm-bundler.js",
   "scripts": {
     "test": "vitest --",
-    "build": "rimraf dist && rollup -c"
+    "build": "rimraf dist && rollup -c",
+    "release": "release-it"
   },
   "exports": {
     ".": {
@@ -36,5 +37,8 @@
   },
   "peerDependencies": {
     "@lazywork/reactive-vue-jsx-runtime": "workspace:^"
+  },
+  "release-it": {
+    "git": false
   }
 }

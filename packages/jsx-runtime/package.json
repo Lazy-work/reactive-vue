@@ -6,7 +6,8 @@
   "main": "./dist/reactive-vue-jsx-runtime.cjs.js",
   "scripts": {
     "test": "vitest --",
-    "build": "rimraf dist && rollup -c"
+    "build": "rimraf dist && rollup -c",
+    "release": "release-it"
   },
   "exports": {
     ".": {
@@ -35,5 +36,8 @@
     "rimraf": "^5.0.5",
     "rollup": "^4.17.2",
     "rollup-plugin-esbuild": "^6.1.1"
+  },
+  "release-it": {
+    "git": false
   }
 }

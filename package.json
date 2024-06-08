@@ -1,11 +1,27 @@
 {
   "version": "0.0.0",
   "type": "module",
+  "workspaces": [
+    "packages/reactive-vue",
+    "packages/jsx-runtime",
+    "packages/babel-optimizer"
+  ],
   "scripts": {
-    "build-all": "pnpm -r build"
+    "build-all": "pnpm -r build",
+    "release": "npm run release --workspaces && release-it"
   },
   "peerDependencies": {
     "react": "^18.0.0"
   },
-  "namespace": "@lazywork"
+  "namespace": "@lazywork",
+  "devDependencies": {
+    "@release-it/bumper": "^6.0.1",
+    "@release-it/conventional-changelog": "^8.0.1",
+    "release-it": "^17.3.0"
+  },
+  "release-it": {
+    "git": {
+      "requireCleanWorkingDir": false
+    }
+  }
 }
