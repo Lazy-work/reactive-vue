@@ -1,16 +1,185 @@
+let t;
+
 const optimizeFnProp = {
   JSXAttribute(path) {
-    const expression = path.get("value.expression");
+    const expression = path.get('value.expression');
     if (expression.isArrowFunctionExpression() || expression.isFunctionExpression()) {
-      const t = this.types;
-      const cbId = path.scope.generateUidIdentifier("cb");
-      const cbVar = t.variableDeclaration("const", [t.variableDeclarator(cbId, expression.node)]);
-      const returnSt = path.findParent((path) => path.isReturnStatement());
+      if (this.seen.includes(path.node)) return;
+      this.seen.push(path.node);
+      const cbId = path.scope.generateUidIdentifier('cb');
+      const cbVar = t.variableDeclaration('const', [t.variableDeclarator(cbId, expression.node)]);
+      const returnSt = path.findParent((path) => path.isReturnStatement() || path.isVariableDeclaration());
       if (!returnSt) return;
       returnSt.insertBefore(cbVar);
       expression.replaceWith(cbId);
     }
+  },
+};
+
+const isDirtyTraverse = {
+  'ArrowFunctionExpression|FunctionExpression': {
+    enter(path) {
+      if (!this.ignoredBlock) {
+        this.ignoredBlock = path.node;
+        this.ignore = true;
+      }
+    },
+    exit(path) {
+      if (this.ignoredBlock === path.node) {
+        this.ignoredBlock = null;
+        this.ignore = false;
+      }
+    },
+  },
+  JSXExpressionContainer: {
+    enter(path) {
+      if (this.toInspect.includes(path.node)) {
+        this.observe = true;
+      }
+    },
+    exit(path) {
+      if (this.toInspect.includes(path.node)) {
+        this.observe = false;
+      }
+    },
+  },
+  MemberExpression(path) {
+    if (this.observe && !this.ignore) {
+      this.dirty();
+      path.stop();
+    }
+  },
+  CallExpression(path) {
+    if (this.observe && !this.ignore) {
+      this.dirty();
+      path.stop();
+    }
+  },
+};
+
+function isDirty(path) {
+  const toInspect = [];
+  for (const child of path.node.children) {
+    if (t.isJSXExpressionContainer(child)) {
+      toInspect.push(child);
+    }
   }
+  for (const child of path.node.openingElement.attributes) {
+    if (t.isJSXExpressionContainer(child.value)) {
+      toInspect.push(child.value);
+    }
+  }
+  let dirty = false;
+  path.traverse(isDirtyTraverse, { dirty: () => (dirty = true), toInspect });
+  return dirty;
+}
+
+function moveChildren(parent, dirtiness) {
+  const p = parent.findParent((path) => path.isReturnStatement());
+  if (!p) return;
+  const children = parent.node.children;
+
+  for (let i = 0; i < children.length; i++) {
+    let child = children[i];
+    if (!t.isJSXElement(child) && !t.isJSXFragment(child)) continue;
+    if (dirtiness.get(child)) continue;
+    if (t.isJSXExpressionContainer(child)) child = child.expression;
+    const jsxId = parent.scope.generateUidIdentifier('jsx');
+    const jsxDec = t.variableDeclarator(jsxId, child);
+    const jsxVar = t.variableDeclaration('const', [jsxDec]);
+    p.insertBefore(jsxVar);
+    parent.get(`children.${i}`).replaceWith(t.JSXExpressionContainer(jsxId));
+  }
+}
+
+const optimizeStatic = {
+  'ArrowFunctionExpression|FunctionExpression': {
+    enter(path) {
+      if (!this.ignoredBlock) {
+        this.ignoredBlock = path.node;
+        this.ignore = true;
+      }
+    },
+    exit(path) {
+      if (this.ignoredBlock === path.node) {
+        this.ignoredBlock = null;
+        this.ignore = false;
+      }
+    },
+  },
+  JSXElement: {
+    enter(path) {
+      if (this.ignore) return;
+      if (this.seen.includes(path.node)) return;
+      this.seen.push(path.node);
+      if (!this.dirtiness.has(path.node)) this.dirtiness.set(path.node, false);
+
+      const parent = this.parents[this.parents.length - 1];
+      const isParentDirty = this.dirtiness.get(parent);
+
+      if (isDirty(path)) {
+        this.dirtiness.set(path.node, true);
+        if (!isParentDirty) for (const parent of this.parents) this.dirtiness.set(parent, true);
+      }
+
+      this.parents.push(path.node);
+    },
+    exit(path) {
+      if (this.ignore) return;
+      const parent = this.parents.at(-2);
+      if (path.node === this.parents.at(-1)) {
+        this.parents.length--;
+      }
+
+      const isDirty = this.dirtiness.get(path.node);
+
+      if (isDirty) {
+        moveChildren(path, this.dirtiness);
+      }
+    },
+  },
+};
+
+const breakDownReturn = {
+  JSXElement: {
+    exit(path) {
+      if (this.seen.includes(path.node)) return;
+      this.seen.push(path.node);
+
+      const program = path.findParent((path) => path.isProgram());
+      this.rsxIdentifier = program.scope.generateUidIdentifier('rsx');
+
+      program.unshiftContainer('body', [
+        t.importDeclaration(
+          [t.importSpecifier(this.rsxIdentifier, t.identifier('rsx'))],
+          t.stringLiteral('@lazywork/reactive-vue-jsx-runtime'),
+        ),
+      ]);
+
+      const container = path.findParent((path) => path.isJSXExpressionContainer());
+      const isInFunctionCall = path
+        .findParent((path) => (container && path.node === container.node) || path.isCallExpression())
+        .isCallExpression();
+      if (container && isInFunctionCall) return;
+      const props = path.get('openingElement');
+      props.traverse(optimizeFnProp, { types: t, seen: this.seen });
+
+      const cbJsx = t.arrowFunctionExpression([], path.node);
+
+      const cbId = path.scope.generateUidIdentifier('cbJsx');
+      const cbVar = t.variableDeclaration('const', [t.variableDeclarator(cbId, cbJsx)]);
+
+      const parent = path.findParent((path) => path.isReturnStatement() || path.isVariableDeclaration());
+
+      if (!parent) return;
+      parent.insertBefore(cbVar);
+      if (path.parentPath.isJSXElement() || path.parentPath.isJSXFragment()) {
+        path.replaceWith(t.JSXExpressionContainer(t.callExpression(this.rsxIdentifier, [cbId])));
+      } else {
+        path.replaceWith(t.callExpression(this.rsxIdentifier, [cbId]));
+      }
+    },
+  },
 };
 
 const handleReactiveComponent = {
@@ -20,51 +189,31 @@ const handleReactiveComponent = {
     if (argument.isJSXElement()) {
       argument.replaceWith(t.arrowFunctionExpression([], argument.node));
     }
-  },
-  JSXElement(path) {
-    if (this.seen.includes(path.node)) return;
-    this.seen.push(path.node);
-    const t = this.types;
-
-    const program = path.findParent((path) => path.isProgram());
-    this.rsxIdentifier = program.scope.generateUidIdentifier('rsx');
-
-    program.unshiftContainer('body', [
-      t.importDeclaration(
-        [t.importSpecifier(this.rsxIdentifier, t.identifier('rsx'))],
-        t.stringLiteral('@lazywork/reactive-vue-jsx-runtime'),
-      ),
-    ]);
-    
-    const container = path.findParent((path) => path.isJSXExpressionContainer());
-    const isInFunctionCall = path.findParent((path) => container && path.node === container.node || path.isCallExpression()).isCallExpression();
-    if (container && isInFunctionCall) return;
-    const props = path.get("openingElement");
-    props.traverse(optimizeFnProp, { types: t, seen: this.seen });
-
-    const cbJsx = t.arrowFunctionExpression([], path.node);
-
-    const cbId = path.scope.generateUidIdentifier("cbJsx");
-    const cbVar = t.variableDeclaration("const", [t.variableDeclarator(cbId, cbJsx)]);
-
-    const parent = path.findParent((path) => path.isReturnStatement() || path.isVariableDeclaration());
-
-    if (!parent) return;
-    parent.insertBefore(cbVar);
-    if (path.parentPath.isJSXElement() || path.parentPath.isJSXFragment()) {
-      path.replaceWith(t.JSXExpressionContainer(t.callExpression(this.rsxIdentifier, [cbId])));
-    } else {
-      path.replaceWith(t.callExpression(this.rsxIdentifier, [cbId]));
-    }
+    let jsx = argument.get('body');
+    jsx.traverse(optimizeStatic, { seen: [], dirtiness: new WeakMap(), parents: [] });
+    jsx.traverse(breakDownReturn, { seen: [] });
   },
 };
-
+let rsxIdentifier;
 export default function (babel) {
-  const { types: t } = babel;
+  const { types } = babel;
+  t = types;
   const seen = [];
   return {
-    name: 'reactive-vue-optimizer',
+    name: 'reactive-vue-auto',
     visitor: {
+      Program(path) {
+        if (!rsxIdentifier) {
+          rsxIdentifier = path.scope.generateUidIdentifier('rsx');
+
+          path.unshiftContainer('body', [
+            t.importDeclaration(
+              [t.importSpecifier(rsxIdentifier, t.identifier('rsx'))],
+              t.stringLiteral('@lazywork/jsx-runtime-vue'),
+            ),
+          ]);
+        }
+      },
       CallExpression(path) {
         if (path.node.callee.name === 'reactivity') {
           path.traverse(handleReactiveComponent, { types: t, seen });
