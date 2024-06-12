@@ -206,7 +206,7 @@ const handleReactiveComponent = {
       body.traverse(findReturns, { returns });
       jsxList = returns;
     } else {
-      jsxList = [body];
+      jsxList = [argument];
     }
     for (const jsx of jsxList) {
       jsx.traverse(optimizeStatic, { dirtiness: new WeakMap(), parents: [], componentReturn: this.componentReturn });
