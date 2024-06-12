@@ -2,19 +2,14 @@
   "name": "babel-plugin-reactive-vue-optimizer",
   "version": "0.0.0",
   "packageManager": "pnpm@8.15.3",
-  "type": "module",
   "main": "./dist/babel-optimizer.cjs.js",
-  "module": "./dist/babel-optimizer.esm-bundler.js",
   "scripts": {
     "test": "vitest --",
-    "build": "rimraf dist && rollup -c",
+    "build": "rimraf dist && rollup -c --bundleConfigAsCjs",
     "release": "release-it"
   },
   "exports": {
     ".": {
-      "import": {
-        "default": "./dist/babel-optimizer.esm-bundler.js"
-      },
       "require": {
         "default": "./dist/babel-optimizer.cjs.js"
       }
@@ -27,6 +22,7 @@
     "README.md"
   ],
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^26.0.1",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@rollup/plugin-replace": "^5.0.5",
     "esbuild": "^0.20.2",
