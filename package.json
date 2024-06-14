@@ -3,9 +3,9 @@
   "type": "module",
   "packageManager": "pnpm@8.15.3",
   "workspaces": [
-    "packages/reactive-vue",
+    "packages/core",
     "packages/jsx-runtime",
-    "packages/babel-optimizer"
+    "packages/compiler"
   ],
   "scripts": {
     "build-all": "pnpm -r build",
