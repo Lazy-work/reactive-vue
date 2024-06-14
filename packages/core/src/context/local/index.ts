@@ -87,6 +87,7 @@ class Context implements IContext {
   #pendingEffects: number[] = [];
   #pendingSum: number = 0;
   #disabledEffects: number[] = [];
+  #savedDisabledEffects: number[] = [];
   #currentEffect?: AbstractEffect = undefined;
   #scope: EffectScope = new EffectScope(this);
 
@@ -238,7 +239,9 @@ class Context implements IContext {
 
     if (this.#postWatcherEffects.length || this.#postEffects.length || this.#onUpdatedEffects.length) {
       useEffect(() => {
-        if (this.#nbExecution > 1) { for (const effect of this.#onUpdatedEffects) effect.run(); }
+        if (this.#nbExecution > 1) { 
+          for (const effect of this.#onUpdatedEffects) effect.run(); 
+        }
         this.computeEffects(this.#postWatcherEffects);
         this.computeEffects(this.#postEffects);
       });
@@ -246,6 +249,14 @@ class Context implements IContext {
 
     for (const effect of this.#onBeforeMountEffects) effect.run();
     useEffect(() => {
+      // handle React strict mode, two time running
+      if (!this.#scope.active) {
+        for (let i = 0; i < this.#savedDisabledEffects.length; i++) {
+          this.#disabledEffects[i] = this.#savedDisabledEffects[i];
+        }
+        this.#disabledEffects.length = this.#savedDisabledEffects.length;
+        this.#scope.restart();
+      }
       this.#mounted = true;
       for (const effect of this.#onMountedEffects) effect.run();
     }, []);
@@ -257,6 +268,10 @@ class Context implements IContext {
     // on unmount effects
     useEffect(
       () => () => {
+        for (let i = 0; i < this.#disabledEffects.length; i++) {
+          this.#savedDisabledEffects[i] = this.#disabledEffects[i];
+        }
+        this.#savedDisabledEffects.length = this.#disabledEffects.length;
         this.computeCleanups(this.#preEffects);
         this.computeCleanups(this.#postEffects);
         this.computeCleanups(this.#syncEffects);
@@ -402,7 +417,7 @@ class Context implements IContext {
         const slot = Math.floor(effect.id / 32);
         const isPending = digit & this.#pendingEffects[slot];
         const isDisabled = this.#disabledEffects[slot] & digit;
-        
+
         if (isPending && !isDisabled) {
           effect.force();
         }
@@ -413,7 +428,7 @@ class Context implements IContext {
         const slot = Math.floor(effect.id / 32);
         const isPending = digit & this.#pendingEffects[slot];
         const isDisabled = this.#disabledEffects[slot] & digit;
-        
+
         if (isPending && !isDisabled) {
           effect.force();
         }
@@ -431,7 +446,7 @@ class Context implements IContext {
     const digit = 1 << (effectId % 32);
 
     const isDisabled = this.#disabledEffects[slot] & digit;
-    
+
     if (isDisabled) return;
     this.#pendingEffects[slot] |= digit;
 

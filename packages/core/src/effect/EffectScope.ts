@@ -98,6 +98,11 @@ class EffectScope {
         currentScope = this.#parent
     }
 
+    restart() {
+        this.#active = true;
+        for (const effect of this.#effects) effect.run();
+        for (const scope of this.#scopes) scope.restart();
+    }
     stop() {
         this.#effects.forEach(effect => {
             effect.stop();

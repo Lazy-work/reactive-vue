@@ -48,7 +48,7 @@ class Effect extends AbstractEffect {
 
     this.#executed = true;
   }
-
+  
   stop() {
     this.#cleanup?.();
     this._context.disableEffect(this);
