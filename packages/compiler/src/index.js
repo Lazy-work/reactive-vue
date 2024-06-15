@@ -226,14 +226,17 @@ export default function (babel) {
           rsxIdentifier = undefined;
         }
       },
-      CallExpression(path) {
-        if (path.node.callee.name === 'reactivity') {
-          const componentBody = path.get('arguments.0.body');
-          const returnIndex = componentBody.node.body.findIndex((item) => t.isReturnStatement(item));
-          const componentReturn = componentBody.get(`body.${returnIndex}`);
+      VariableDeclaration(path) {
+        if (path.node.declarations.length === 1 
+            && t.isCallExpression(path.node.declarations[0].init) 
+            && path.node.declarations[0].init.callee.name === "reactivity") {
+              
+          const componentBody = path.get('declarations.0.init.arguments.0.body');
+          const returnIndex = componentBody.node.body.findIndex((item) => t.isReturnStatement(item))
+          const componentReturn = componentBody.get(`body.${returnIndex}`)
           path.traverse(handleReactiveComponent, { types: t, componentReturn });
         }
-      },
-    },
+      }
+    }
   };
 }
