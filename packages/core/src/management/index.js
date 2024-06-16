@@ -30,7 +30,7 @@ export function createHook(reactiveHook) {
   };
 }
 
-export function reactivity(fn) {
+export function $reactive(fn) {
   return (props) => {
     const context = useMemo(() => createContext(), []);
     context.init();
