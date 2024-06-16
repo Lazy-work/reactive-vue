@@ -1,5 +1,7 @@
 let t;
 let rsxIdentifier;
+const alreadyOptimized = new Set();
+const toOptimize = new Set();
 
 const optimizeFnProp = {
   JSXAttribute(path) {
@@ -149,10 +151,12 @@ const breakDownReturn = {
       }
 
       const container = path.findParent((path) => path.isJSXExpressionContainer());
-      const isInFunctionCall = path
-        .findParent((path) => (container && path.node === container.node) || path.isCallExpression())
-        .isCallExpression();
-      if (container && isInFunctionCall) return;
+      if (container) {
+        const isInFunctionCall = path
+          .findParent((path) => path.node === container.node || path.isCallExpression())
+          .isCallExpression();
+        if (isInFunctionCall) return;
+      }
       const props = path.get('openingElement');
       props.traverse(optimizeFnProp, { types: t, seen: this.seen, componentReturn: this.componentReturn });
 
@@ -215,26 +219,81 @@ const handleReactiveComponent = {
   },
 };
 
+const isReactiveComponent = {
+  CallExpression(path) {
+    if (
+      path.node.callee.name === "reactivity" &&
+      t.isIdentifier(path.node.arguments[0]) &&
+      path.node.arguments[0].name === this.idName
+    ) {
+      this.isReactive();
+    }
+  }
+};
+
+function optimizeComponent(componentBody) {
+  const returnIndex = componentBody.node.body.findIndex((item) => t.isReturnStatement(item));
+  const componentReturn = componentBody.get(`body.${returnIndex}`);
+  componentBody.traverse(handleReactiveComponent, { types: t, componentReturn });
+}
+
+function isComponentishName(name) {
+  return typeof name === "string" && name[0] >= "A" && name[0] <= "Z";
+}
+
+let program;
 export default function (babel) {
   const { types } = babel;
   t = types;
   return {
-    name: 'reactive-vue-auto',
+    name: 'reactive-vue-compiler',
     visitor: {
       Program: {
+        enter(path) {
+          program = path;
+        },
         exit() {
-          rsxIdentifier = undefined;
+          rsxIdentifier = undefined; 
+          program = undefined;
+        }
+      },
+      FunctionDeclaration(path) {
+        if (isComponentishName(path.node.id.name)) {
+          let isReactive = false;
+          program.traverse(isReactiveComponent, {
+            isReactive: () => void (isReactive = true),
+            idName: path.node.id.name
+          });
+          if (isReactive) {
+            const componentBody = path.get("body");
+            optimizeComponent(componentBody);
+          }
         }
       },
       VariableDeclaration(path) {
-        if (path.node.declarations.length === 1 
-            && t.isCallExpression(path.node.declarations[0].init) 
-            && path.node.declarations[0].init.callee.name === "reactivity") {
-              
-          const componentBody = path.get('declarations.0.init.arguments.0.body');
-          const returnIndex = componentBody.node.body.findIndex((item) => t.isReturnStatement(item))
-          const componentReturn = componentBody.get(`body.${returnIndex}`)
-          path.traverse(handleReactiveComponent, { types: t, componentReturn });
+        if (path.node.declarations.length === 0) return;
+        const declaration = path.get("declarations.0");
+
+        if (
+          isComponentishName(declaration.node.id.name) &&
+          t.isCallExpression(declaration.node.init) &&
+          declaration.node.init.callee.name === "reactivity"
+        ) {
+          let root = declaration.get("init");
+
+          const argument = root.get("arguments.0");
+          if (argument.isArrowFunctionExpression() || argument.isFunctionExpression()) {
+            const componentBody = argument.get("body");
+            optimizeComponent(componentBody);
+            alreadyOptimized.add(declaration.node.id.name);
+            toOptimize.delete(declaration.node.id.name);
+          }
+
+          if (argument.isIdentifier()) {
+            if (!alreadyOptimized.has(declaration.node.id.name)) {
+              toOptimize.add(declaration.node.id.name);
+            }
+          }
         }
       }
     }
