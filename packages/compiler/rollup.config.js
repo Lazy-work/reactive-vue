@@ -18,7 +18,7 @@ export default [
     input: "src/index.js",
     output: [
       {
-        file: "dist/babel-optimizer.cjs.js",
+        file: "dist/reactive-vue-compiler.cjs.js",
         format: "cjs",
         sourcemap: true,
       }
