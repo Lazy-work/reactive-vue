@@ -66,7 +66,7 @@ export declare function createApp(): App;
 export declare function useContext<T>(context: React.Context<T>): T;
 export declare function useDeferredValue<T>(initialValue: Ref<T>): Readonly<Ref<T>>;
 export declare function createHook<T>(reactiveHook: T): T;
-export declare function reactivity<T>(component: (props: T) => () => ReactNode): React.FC<T>;
+export declare function $reactive<T>(component: (props: T) => () => ReactNode): React.FC<T>;
 export declare function getCurrentInstance(): IContext;
 export declare function defineProps<T extends object>(keys: (keyof T)[]): void;
 export declare function reactRef<T>(initialValue: T | null): ReactRef<T>;

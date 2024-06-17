@@ -1,12 +1,12 @@
 import App from "./app";
-import { reactivity } from "../management";
+import { $reactive } from "../management";
 import { onMounted, onUnmounted } from "../lifecycle";
 
 export function createApp() {
     return new App();
 }
 
-export const AppProvider = reactivity(({ app, children = null }) => {
+export const AppProvider = $reactive(({ app, children = null }) => {
     app.install();
     onMounted(() => {
         app.mount();

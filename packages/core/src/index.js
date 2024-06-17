@@ -1,6 +1,6 @@
 import "./context/global";
 export {
-  reactivity,
+  $reactive,
   createHook,
 } from './management'
 
