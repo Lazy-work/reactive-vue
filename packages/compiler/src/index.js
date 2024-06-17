@@ -3,6 +3,7 @@ let rsxIdentifier;
 const alreadyOptimized = new Set();
 const toOptimize = new Set();
 const REACTIVE_NAME = '$reactive';
+let currentReactiveName = REACTIVE_NAME;
 
 const optimizeFnProp = {
   JSXAttribute(path) {
@@ -223,7 +224,7 @@ const handleReactiveComponent = {
 const isReactiveComponent = {
   CallExpression(path) {
     if (
-      path.node.callee.name === REACTIVE_NAME &&
+      path.node.callee.name === currentReactiveName &&
       t.isIdentifier(path.node.arguments[0]) &&
       path.node.arguments[0].name === this.idName
     ) {
@@ -258,6 +259,9 @@ export default function (babel) {
           program = undefined;
         }
       },
+      ImportSpecifier(path) {
+        if (path.node.imported.name === REACTIVE_NAME) currentReactiveName = path.node.local.name
+      },
       FunctionDeclaration(path) {
         if (isComponentishName(path.node.id.name)) {
           let isReactive = false;
@@ -278,10 +282,10 @@ export default function (babel) {
         if (
           isComponentishName(declaration.node.id.name) &&
           t.isCallExpression(declaration.node.init) &&
-          declaration.node.init.callee.name === REACTIVE_NAME
+          declaration.node.init.callee.name === currentReactiveName
         ) {
-          let root = declaration.get("init");
-
+          const root = declaration.get("init");
+          
           const argument = root.get("arguments.0");
           if (argument.isArrowFunctionExpression() || argument.isFunctionExpression()) {
             const componentBody = argument.get("body");
