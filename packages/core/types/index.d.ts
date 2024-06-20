@@ -106,7 +106,24 @@ export interface App<HostElement = any> {
      */
     runWithContext<T>(fn: () => T): T
 }
-
+declare class LogicalEvaluation {
+    #private;
+    constructor(expression: boolean);
+    then<T>(exp: T): this;
+    elseif<T>(bool: boolean, exp: T): this;
+    else<T>(exp: T): this;
+    end(): any;
+} 
+type DeepPartial<T> = T extends object ? {
+    [P in keyof T]?: DeepPartial<T[P]>;
+} : T;
+type CaseParams<T> = T extends object ? [...(DeepPartial<T> | boolean)[], any] : [...(T | boolean)[], any];
+declare class SwitchEvaluation<T> {
+    #private;
+    constructor(input: T);
+    case(...args: CaseParams<T>): this;
+    default(expression?: any): any;
+}
 export declare function AppProvider({ app, children }: { app: App, children?: ReactNode }): ReactNode;
 export declare function createApp(): App;
 export declare function useContext<T>(context: React.Context<T>): T;
@@ -120,6 +137,10 @@ export declare function watchLayoutEffect(effect: WatchEffect, options?: WatchOp
 export declare function watchInsertionEffect(effect: WatchEffect, options?: WatchOptionsBase): WatchStopHandle;
 export declare function useTransition(): void;
 export declare function nextTick(): Promise<void>;
+export declare function $if(expression: boolean): LogicalEvaluation;
+export declare function $switch<T>(input: T): SwitchEvaluation<T>;
+export declare function v<T>(value: T): { value: T };
+
 
 interface ToReactiveHookOptions {
     /**
