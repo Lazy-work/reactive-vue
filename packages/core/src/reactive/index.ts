@@ -15,7 +15,8 @@ import { IS_GLOBAL_KEY, ReactiveFlags } from '../constants'
 import { warn } from './warning'
 import { getContext } from '../management/setting'
 import IContext from '../context/IContext'
-import { RawSymbol, Ref, UnwrapRefSimple, isRef } from '..'
+import { RawSymbol, Ref, UnwrapRefSimple } from '..'
+import { isRef } from '../ref'
 
 export interface Target {
   [ReactiveFlags.SKIP]?: boolean
