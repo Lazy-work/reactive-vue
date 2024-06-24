@@ -49,7 +49,7 @@ export function customRef(factory) {
 
 export function computed(getterOrOptions, debugOptions) {
   mustBeReactiveComponent();
-  const memoEffect = this.createMemoEffect(getterOrOptions);
+  const memoEffect = this.createMemoEffect(getterOrOptions, debugOptions);
   return memoEffect.ref;
 }
 

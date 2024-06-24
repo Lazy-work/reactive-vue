@@ -38,11 +38,11 @@ export function shallowRef(initialValue) {
   return scope.shallowRef.call(context, initialValue);
 }
 
-export function computed(getter) {
+export function computed(getter, debugOptions) {
   const context = getContext();
   let scope = local;
   if (context === globalThis.__v_globalContext) scope = global;
-  return scope.computed.call(context, getter);
+  return scope.computed.call(context, getter, debugOptions);
 }
 
 export function createId() {

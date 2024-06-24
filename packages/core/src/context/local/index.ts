@@ -27,6 +27,7 @@ import { RENDER_EFFECT } from '../../constants';
 import { queueFlush } from '../../lifecycle';
 import EffectScope, { getCurrentScope, setCurrentScope } from '../../effect/EffectScope';
 import { NOOP } from '@vue/shared';
+import { DebuggerOptions } from '../..';
 
 const nativeHooks = [
   React.useReducer,
@@ -239,8 +240,8 @@ class Context implements IContext {
 
     if (this.#postWatcherEffects.length || this.#postEffects.length || this.#onUpdatedEffects.length) {
       useEffect(() => {
-        if (this.#nbExecution > 1) { 
-          for (const effect of this.#onUpdatedEffects) effect.run(); 
+        if (this.#nbExecution > 1) {
+          for (const effect of this.#onUpdatedEffects) effect.run();
         }
         this.computeEffects(this.#postWatcherEffects);
         this.computeEffects(this.#postEffects);
@@ -524,7 +525,7 @@ class Context implements IContext {
     return result;
   }
 
-  createMemoEffect<T>(getterOrOptions: any): MemoEffect<T> {
+  createMemoEffect<T>(getterOrOptions: any, debuggerOptions: DebuggerOptions = {}): MemoEffect<T> {
     mustBeReactiveComponent();
     let getter;
     let setter;
@@ -535,7 +536,7 @@ class Context implements IContext {
       setter = getterOrOptions.set;
     }
     const storeIndex = this.getStoreNextIndex();
-    const memoEffect = new MemoEffect<T>(this.#idEffect, this, getter, storeIndex);
+    const memoEffect = new MemoEffect<T>(this.#idEffect, this, getter, storeIndex, undefined, debuggerOptions.onTrack, debuggerOptions.onTrigger);
     const ref = new ComputedRef(this, storeIndex, memoEffect, setter);
     memoEffect.ref = ref;
     this.#memoizedEffects.push(memoEffect);

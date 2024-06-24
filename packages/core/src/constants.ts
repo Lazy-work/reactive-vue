@@ -30,6 +30,7 @@ export enum ReactiveFlags {
   RAW = '__v_raw',
 }
 
+export { ITERATE_KEY, MAP_KEY_ITERATE_KEY } from './reactive/reactiveEffect';
 export const IS_GLOBAL_KEY = Symbol('__v_isGlobal');
 export const INITIAL_CONTEXT_KEY = Symbol('__v_initialContext');
 export const CONTEXT_KEY = Symbol('__v_context');

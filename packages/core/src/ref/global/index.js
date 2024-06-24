@@ -38,9 +38,9 @@ export function customRef(factory) {
   return new CustomRef(factory);
 }
 
-export function computed(getter) {
+export function computed(getter, options) {
   mustBeOutsideComponent();
-  const memoEffect = this.createMemoEffect(getter);
+  const memoEffect = this.createMemoEffect(getter, options);
   return memoEffect.ref;
 }
 

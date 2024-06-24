@@ -11,6 +11,7 @@ import ComputedRef from '../../ref/global/ComputedRef';
 import type IContext from '../IContext';
 import EffectScope, { getCurrentScope, setCurrentScope } from '../../effect/EffectScope';
 import { WatchEffectOptions, WatchOptions, WatchSource } from '../../types';
+import { DebuggerOptions } from '../..';
 
 class GlobalContext implements IContext {
   #provider: Map<any, any> = new Map();
@@ -222,7 +223,7 @@ class GlobalContext implements IContext {
     return this.#disabledEffects;
   }
 
-  createMemoEffect<T>(getterOrOptions: any): MemoEffect<T> {
+  createMemoEffect<T>(getterOrOptions: any, debuggerOptions: DebuggerOptions = {}): MemoEffect<T> {
     mustBeOutsideComponent();
     let getter;
     let setter;
@@ -233,7 +234,7 @@ class GlobalContext implements IContext {
       setter = getterOrOptions.set;
     }
     const storeIndex = this.getStoreNextIndex();
-    const memoEffect = new MemoEffect<T>(this.#idEffect, this, getter, storeIndex);
+    const memoEffect = new MemoEffect<T>(this.#idEffect, this, getter, storeIndex, undefined, debuggerOptions.onTrack, debuggerOptions.onTrigger);
     const ref = new ComputedRef(storeIndex, memoEffect, setter);
     memoEffect.ref = ref;
     this.#memoEffects.push(memoEffect);
