@@ -1,6 +1,6 @@
 # [Reactive (Vue)](https://reactive-lib.netlify.app/)
 
-[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)] (https://github.com/Lazy-work/reactive-vue/blob/main/LICENSE)
+[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Lazy-work/reactive-vue/blob/main/LICENSE)
 
 Reactive (Vue) is a library designed to switch React reactivity from opt-out to opt-in.
 
