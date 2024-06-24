@@ -2,7 +2,7 @@ import { act, render } from "@testing-library/react";
 import {
   computed,
   watchEffect as effect,
-  reactivity,
+  $reactive,
   ref,
 } from "../../src/index";
 
@@ -12,7 +12,7 @@ describe("deferred computed", () => {
     let c;
     let spy;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       src = ref(0);
       c = computed(() => src.value % 2);
       spy = vi.fn();
@@ -45,7 +45,7 @@ describe("deferred computed", () => {
     let c1;
     let c2;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       src = ref(0);
       c1 = computed(() => {
         c1Spy();
@@ -84,7 +84,7 @@ describe("deferred computed", () => {
     let c1;
     let c2;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       src = ref(0);
       c1 = computed(() => {
         c1Spy();
@@ -124,7 +124,7 @@ describe("deferred computed", () => {
     let c1;
     let c2;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       src = ref(0);
       c1 = computed(() => {
         c1Spy();
@@ -166,7 +166,7 @@ describe("deferred computed", () => {
     let c1;
     let c2;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       src = ref(0);
       c1 = computed(() => {
         c1Spy();
@@ -198,7 +198,7 @@ describe("deferred computed", () => {
     let src;
     let c1;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       src = ref(0);
       c1 = computed(() => {
         c1Spy();

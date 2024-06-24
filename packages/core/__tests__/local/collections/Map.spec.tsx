@@ -1,6 +1,6 @@
 import { act, render } from '@testing-library/react';
 import { isReactive, reactive, toRaw, watchEffect as effect } from '../../../src/index';
-import { reactivity } from '../../../src/management';
+import { $reactive } from '../../../src/management';
 import { nextTick } from '../../../src/lifecycle';
 
 describe('reactivity/collections', () => {
@@ -23,7 +23,7 @@ describe('reactivity/collections', () => {
     it('should observe mutations', async () => {
       let dummy;
       let map;
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         map = reactive(new Map());
         effect(() => {
           dummy = map.get('key');
@@ -54,7 +54,7 @@ describe('reactivity/collections', () => {
       let value;
       let map;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         key = reactive({});
         value = reactive({});
         map = reactive(new Map());
@@ -80,7 +80,7 @@ describe('reactivity/collections', () => {
       let dummy;
       let map;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         map = reactive(new Map());
         effect(() => (dummy = map.size));
 
@@ -110,7 +110,7 @@ describe('reactivity/collections', () => {
       let dummy;
       let map;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         map = reactive(new Map());
         effect(() => {
           dummy = 0;
@@ -152,7 +152,7 @@ describe('reactivity/collections', () => {
       let dummy: any;
       let map;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         map = reactive(new Map());
         effect(() => {
           dummy = 0;
@@ -189,7 +189,7 @@ describe('reactivity/collections', () => {
       let dummy;
       let map;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         map = reactive(new Map());
         effect(() => {
           dummy = 0;
@@ -223,7 +223,7 @@ describe('reactivity/collections', () => {
       let dummy;
       let map;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         map = reactive(new Map());
         effect(() => {
           dummy = 0;
@@ -264,7 +264,7 @@ describe('reactivity/collections', () => {
       let dummy2;
       let map;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         map = reactive(new Map());
         effect(() => {
           dummy = '';
@@ -311,7 +311,7 @@ describe('reactivity/collections', () => {
       let dummy;
       let map;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         map = reactive(new Map());
         effect(() => (dummy = map.get('key')));
         return () => <div />;
@@ -334,7 +334,7 @@ describe('reactivity/collections', () => {
       let dummy;
       let map: any;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         map = reactive(new Map());
         effect(() => (dummy = map.customProp));
         return () => <div />;
@@ -354,7 +354,7 @@ describe('reactivity/collections', () => {
       let map;
       let mapSpy;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         map = reactive(new Map());
         mapSpy = vi.fn(() => (dummy = map.get('key')));
         effect(mapSpy);
@@ -401,7 +401,7 @@ describe('reactivity/collections', () => {
     it('should not observe raw data', () => {
       let dummy;
       let map;
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         map = reactive(new Map());
         effect(() => (dummy = toRaw(map).get('key')));
         return () => <div />;
@@ -424,7 +424,7 @@ describe('reactivity/collections', () => {
       let observed;
       let value;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         map = new Map();
         observed = reactive(map);
         value = reactive({});
@@ -444,7 +444,7 @@ describe('reactivity/collections', () => {
       let observed;
       let value;
       let wrapped;
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         observed = reactive(new Map());
         value = {};
         return () => <div />;
@@ -462,7 +462,7 @@ describe('reactivity/collections', () => {
     it('should observed nested data', () => {
       let observed;
       let dummy;
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         observed = reactive(new Map());
         observed.set('key', { a: 1 });
         effect(() => {
@@ -482,7 +482,7 @@ describe('reactivity/collections', () => {
       let map;
       let dummy: any;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         map = reactive(new Map([[1, { foo: 1 }]]));
         effect(() => {
           dummy = 0;
@@ -506,7 +506,7 @@ describe('reactivity/collections', () => {
       let map;
       let dummy: any;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         map = reactive(new Map([[1, { foo: 1 }]]));
         effect(() => {
           dummy = 0;
@@ -532,7 +532,7 @@ describe('reactivity/collections', () => {
       let map;
       let dummy: any;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         key = {};
         map = reactive(new Map([[key, { foo: 1 }]]));
         effect(() => {
@@ -561,7 +561,7 @@ describe('reactivity/collections', () => {
       let map;
       let dummy: any;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         key = {};
         map = reactive(new Map([[key, { foo: 1 }]]));
         effect(() => {
@@ -589,7 +589,7 @@ describe('reactivity/collections', () => {
       let map;
       let mapSpy;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         map = reactive(new Map([['foo', NaN]]));
         mapSpy = vi.fn(() => map.get('foo'));
         effect(mapSpy);
@@ -624,7 +624,7 @@ describe('reactivity/collections', () => {
 
       let dummy;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         raw = new Map();
         key = reactive({});
         raw.set(key, 1);
@@ -651,7 +651,7 @@ describe('reactivity/collections', () => {
       let map;
 
       let dummy;
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         raw = new Map();
         key = reactive({});
         raw.set(key, 1);
@@ -688,7 +688,7 @@ describe('reactivity/collections', () => {
       let map;
       let spy;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         map = reactive(new Map());
         spy = vi.fn();
 

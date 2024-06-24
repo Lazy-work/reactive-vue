@@ -12,7 +12,6 @@ import {
   toRaw,
   computed
 } from '../../src/index'
-import { getContext } from '../../src/management/setting'
 import { ITERATE_KEY } from '../../src/reactive/reactiveEffect'
 
 describe('reactivity/effect', () => {

@@ -1,8 +1,7 @@
 import { isReactive, reactive, toRaw } from '../../../src/reactive';
 import { watchEffect as effect } from '../../../src/effect';
-import { reactivity } from '../../../src/management';
+import { $reactive } from '../../../src/management';
 import { act, render } from '@testing-library/react';
-import { nextTick } from '../../../src';
 
 describe('reactivity/collections', () => {
   function coverCollectionFn(collection: Set<any>, fnName: string) {
@@ -24,7 +23,7 @@ describe('reactivity/collections', () => {
     it('should observe mutations', () => {
       let dummy;
       let set;
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         set = reactive(new Set());
         effect(() => (dummy = set.has('value')));
         return () => <div />;
@@ -46,7 +45,7 @@ describe('reactivity/collections', () => {
       let dummy;
       let value;
       let set;
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         value = reactive({});
         set = reactive(new Set());
         effect(() => (dummy = set.has(value)));
@@ -71,7 +70,7 @@ describe('reactivity/collections', () => {
       let dummy;
       let set;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         set = reactive(new Set() as Set<number>);
         effect(() => {
           dummy = 0;
@@ -103,7 +102,7 @@ describe('reactivity/collections', () => {
     it('should observe forEach iteration', async () => {
       let dummy: any;
       let set;
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         set = reactive(new Set());
         effect(() => {
           dummy = 0;
@@ -133,7 +132,7 @@ describe('reactivity/collections', () => {
       let dummy;
       let set;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         set = reactive(new Set() as Set<number>);
         effect(() => {
           dummy = 0;
@@ -167,7 +166,7 @@ describe('reactivity/collections', () => {
     it('should observe keys iteration', async () => {
       let dummy;
       let set;
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         set = reactive(new Set() as Set<number>);
         effect(() => {
           dummy = 0;
@@ -200,7 +199,7 @@ describe('reactivity/collections', () => {
       let dummy;
       let set;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         set = reactive(new Set<number>());
         effect(() => {
           dummy = 0;
@@ -233,7 +232,7 @@ describe('reactivity/collections', () => {
     it('should be triggered by clearing', async () => {
       let dummy;
       let set;
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         set = reactive(new Set());
         effect(() => (dummy = set.has('key')));
         return () => <div />;
@@ -255,7 +254,7 @@ describe('reactivity/collections', () => {
       let dummy;
       let set: any;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         set = reactive(new Set());
         effect(() => (dummy = set.customProp));
         return () => <div />;
@@ -274,7 +273,7 @@ describe('reactivity/collections', () => {
       let dummy;
       let set;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         set = reactive(new Set());
         effect(() => (dummy = set.size));
         return () => <div />;
@@ -304,7 +303,7 @@ describe('reactivity/collections', () => {
       let set;
       let setSpy;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         set = reactive(new Set());
         setSpy = vi.fn(() => (dummy = set.has('value')));
         effect(setSpy);
@@ -346,7 +345,7 @@ describe('reactivity/collections', () => {
       let dummy;
       let set;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         set = reactive(new Set());
         effect(() => (dummy = toRaw(set).has('value')));
 
@@ -365,7 +364,7 @@ describe('reactivity/collections', () => {
       let dummy = 0;
       let set;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         set = reactive(new Set<number>());
         effect(() => {
           dummy = 0;
@@ -406,7 +405,7 @@ describe('reactivity/collections', () => {
       let dummy;
       let set;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         set = reactive(new Set());
         effect(() => (dummy = set.has('value')));
         return () => <div />;
@@ -433,7 +432,7 @@ describe('reactivity/collections', () => {
       let dummy;
       let set;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         set = reactive(new Set());
         effect(() => (dummy = toRaw(set).size));
         return () => <div />;
@@ -451,7 +450,7 @@ describe('reactivity/collections', () => {
       let dummy;
       let set;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         set = reactive(new Set());
         effect(() => (dummy = set.size));
 
@@ -473,7 +472,7 @@ describe('reactivity/collections', () => {
       let set;
       let setSpy;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         key = {};
         set = reactive(new Set());
         setSpy = vi.fn(() => (dummy = set.has(key)));
@@ -512,7 +511,7 @@ describe('reactivity/collections', () => {
       let set;
       let dummy: any;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         set = reactive(new Set([{ foo: 1 }]));
         effect(() => {
           dummy = 0;
@@ -538,7 +537,7 @@ describe('reactivity/collections', () => {
       let set;
       let dummy: any;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         set = reactive(new Set([{ foo: 1 }]));
         effect(() => {
           dummy = 0;
@@ -564,7 +563,7 @@ describe('reactivity/collections', () => {
       let set;
       let dummy: any;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         set = reactive(new Set([{ foo: 1 }]));
         effect(() => {
           dummy = 0;
@@ -591,7 +590,7 @@ describe('reactivity/collections', () => {
       let set;
       let dummy: any;
       
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         set = reactive(new Set([{ foo: 1 }]));
         effect(() => {
           dummy = 0;
@@ -632,7 +631,7 @@ describe('reactivity/collections', () => {
 
       let dummy;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         raw = new Set();
         entry = reactive({});
         raw.add(entry);

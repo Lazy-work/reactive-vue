@@ -1,5 +1,5 @@
 import { act, render } from "@testing-library/react";
-import { reactivity, watch, watchEffect } from "../../src/index";
+import { $reactive, watch, watchEffect } from "../../src/index";
 import {
   type ComputedRef,
   computed,
@@ -15,7 +15,7 @@ import EffectScope from "../../src/effect/EffectScope";
 describe("reactivity/effect/scope", () => {
   it("should run", () => {
     let fnSpy;
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       fnSpy = vi.fn(() => {});
       effectScope().run(fnSpy);
       return () => <div />;
@@ -29,7 +29,7 @@ describe("reactivity/effect/scope", () => {
 
   it("should accept zero argument", () => {
     let scope;
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       scope = effectScope();
       return () => <div />;
     });
@@ -43,7 +43,7 @@ describe("reactivity/effect/scope", () => {
   it("should return run value", () => {
     let result;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       result = effectScope().run(() => 1);
       return () => <div />;
     });
@@ -57,7 +57,7 @@ describe("reactivity/effect/scope", () => {
   it("should work w/ active property", () => {
     let scope;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       scope = effectScope();
       scope.run(() => 1);
       return () => <div />;
@@ -75,7 +75,7 @@ describe("reactivity/effect/scope", () => {
     let scope;
     let dummy;
     let counter;
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       scope = effectScope();
       scope.run(() => {
         counter = reactive({ num: 0 });
@@ -101,7 +101,7 @@ describe("reactivity/effect/scope", () => {
     let counter;
     let scope;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       counter = reactive({ num: 0 });
       scope = effectScope();
       scope.run(() => {
@@ -136,7 +136,7 @@ describe("reactivity/effect/scope", () => {
     let counter;
     let scope;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       counter = reactive({ num: 0 });
       scope = effectScope();
       scope.run(() => {
@@ -177,7 +177,7 @@ describe("reactivity/effect/scope", () => {
     let counter;
     let scope;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       counter = reactive({ num: 0 });
       scope = effectScope();
 
@@ -216,7 +216,7 @@ describe("reactivity/effect/scope", () => {
   it("able to run the scope", () => {
     let dummy, doubled, counter, scope;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       counter = reactive({ num: 0 });
       scope = effectScope();
 
@@ -249,7 +249,7 @@ describe("reactivity/effect/scope", () => {
     let counter;
     let scope;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       counter = reactive({ num: 0 });
       scope = effectScope();
       scope.run(() => {
@@ -285,7 +285,7 @@ describe("reactivity/effect/scope", () => {
     let dummy = 0;
 
     let scope;
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       scope = effectScope();
       scope.run(() => {
         onScopeDispose(() => (dummy += 1));
@@ -313,7 +313,7 @@ describe("reactivity/effect/scope", () => {
     let spy;
     let scope;
     let dispose;
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       spy = vi.fn();
       scope = effectScope();
       scope.run(() => {
@@ -341,7 +341,7 @@ describe("reactivity/effect/scope", () => {
     let parent;
     let child;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       parent = effectScope();
       child = parent.run(() => effectScope())!;
       return () => <div />;
@@ -364,7 +364,7 @@ describe("reactivity/effect/scope", () => {
 
     let c: ComputedRef;
     let scope;
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       r = ref(1);
 
       computedSpy = vi.fn();
@@ -418,7 +418,7 @@ describe("reactivity/effect/scope", () => {
   it("getCurrentScope() stays valid when running a detached nested EffectScope", () => {
     let parentScope = effectScope();
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       parentScope = effectScope();
 
       parentScope.run(() => {
@@ -441,7 +441,7 @@ describe("reactivity/effect/scope", () => {
   it("calling .off() of a detached scope inside an active scope should not break currentScope", () => {
     let parentScope = effectScope();
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       parentScope = effectScope();
 
       parentScope.run(() => {

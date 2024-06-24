@@ -13,7 +13,7 @@ import {
   stop,
   toRaw,
   computed,
-  reactivity,
+  $reactive,
 } from "../../src/index";
 import { getContext } from '../../src/management/setting';
 import { ITERATE_KEY } from "../../src/reactive/reactiveEffect";
@@ -21,7 +21,7 @@ import { ITERATE_KEY } from "../../src/reactive/reactiveEffect";
 describe("reactivity/effect", () => {
   it("should run the passed function once (wrapped by a effect)", () => {
     const fnSpy = vi.fn(() => {});
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       effect(fnSpy);
       return () => <div />;
     });
@@ -35,7 +35,7 @@ describe("reactivity/effect", () => {
     let dummy;
     let counter;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       counter = reactive({ num: 0 });
       effect(() => (dummy = counter.num));
       return () => <div />;
@@ -53,7 +53,7 @@ describe("reactivity/effect", () => {
     let dummy;
     let counter;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       counter = reactive({ num1: 0, num2: 0 });
       effect(() => (dummy = counter.num1 + counter.num1 + counter.num2));
       return () => <div />;
@@ -71,7 +71,7 @@ describe("reactivity/effect", () => {
     let dummy1, dummy2;
     let counter;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       counter = reactive({ num: 0 });
       effect(() => (dummy1 = counter.num));
       effect(() => (dummy2 = counter.num));
@@ -93,7 +93,7 @@ describe("reactivity/effect", () => {
     let dummy;
     let counter;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       counter = counter = reactive({ nested: { num: 0 } });
       effect(() => (dummy = counter.nested.num));
       return () => <div />;
@@ -112,7 +112,7 @@ describe("reactivity/effect", () => {
     let dummy;
     let obj;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       obj = reactive<{
         prop?: string;
       }>({ prop: "value" });
@@ -133,7 +133,7 @@ describe("reactivity/effect", () => {
     let dummy;
     let obj;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       obj = reactive<{ prop?: string | number }>({ prop: "value" });
       effect(() => (dummy = "prop" in obj));
       return () => <div />;
@@ -154,7 +154,7 @@ describe("reactivity/effect", () => {
     let counter;
     let parentCounter;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       counter = reactive<{ num?: number }>({ num: 0 });
       parentCounter = reactive({ num: 2 });
       Object.setPrototypeOf(counter, parentCounter);
@@ -179,7 +179,7 @@ describe("reactivity/effect", () => {
     let counter;
     let parentCounter;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       counter = reactive<{ num?: number }>({ num: 0 });
       parentCounter = reactive({ num: 2 });
       Object.setPrototypeOf(counter, parentCounter);
@@ -204,7 +204,7 @@ describe("reactivity/effect", () => {
     let obj;
     let parent;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       obj = reactive<{ prop?: number }>({});
       parent = reactive({
         set prop(value) {
@@ -239,7 +239,7 @@ describe("reactivity/effect", () => {
     let dummy;
     let counter;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       counter = reactive({ num: 0 });
       effect(() => (dummy = getNum()));
 
@@ -262,7 +262,7 @@ describe("reactivity/effect", () => {
     let dummy;
     let list;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       list = reactive(["Hello"]);
       effect(() => (dummy = list.join(" ")));
       return () => <div />;
@@ -282,7 +282,7 @@ describe("reactivity/effect", () => {
     let dummy;
     let list;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       list = reactive(["Hello"]);
       effect(() => (dummy = list.join(" ")));
       return () => <div />;
@@ -302,7 +302,7 @@ describe("reactivity/effect", () => {
     let dummy;
     let list;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       list = reactive<string[]>([]);
       list[1] = "World!";
       effect(() => (dummy = list.join(" ")));
@@ -323,7 +323,7 @@ describe("reactivity/effect", () => {
     let dummy = 0;
     let numbers;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       numbers = reactive<Record<string, number>>({ num1: 3 });
       effect(() => {
         dummy = 0;
@@ -350,7 +350,7 @@ describe("reactivity/effect", () => {
     let dummy, hasDummy;
     let obj;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       obj = reactive<{ [key]?: string }>({ [key]: "value" });
       effect(() => (dummy = obj[key]));
       effect(() => (hasDummy = key in obj));
@@ -374,7 +374,7 @@ describe("reactivity/effect", () => {
     let dummy;
     let array: any;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       array = reactive([]);
       effect(() => (dummy = array[key]));
       return () => <div />;
@@ -395,7 +395,7 @@ describe("reactivity/effect", () => {
     let dummy;
     let array;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       array = reactive([1, 2, 3]);
       effect(() => (dummy = array[key]));
       return () => <div />;
@@ -425,7 +425,7 @@ describe("reactivity/effect", () => {
     let dummy;
     let obj;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       obj = reactive({ func: oldFunc });
       effect(() => (dummy = obj.func));
       return () => <div />;
@@ -445,7 +445,7 @@ describe("reactivity/effect", () => {
 
     let dummy;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       obj = reactive({
         a: 1,
         get b() {
@@ -470,7 +470,7 @@ describe("reactivity/effect", () => {
     let obj;
 
     let dummy;
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       obj = reactive({
         a: 1,
         b() {
@@ -496,7 +496,7 @@ describe("reactivity/effect", () => {
     let getSpy;
     let hasSpy;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       obj = reactive({ prop: "value" });
 
       getSpy = vi.fn(() => (getDummy = obj.prop));
@@ -523,7 +523,7 @@ describe("reactivity/effect", () => {
   it("should not observe raw mutations", () => {
     let dummy;
     let obj;
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       obj = reactive<{ prop?: string }>({});
       effect(() => (dummy = toRaw(obj).prop));
 
@@ -542,7 +542,7 @@ describe("reactivity/effect", () => {
     let dummy;
     let obj;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       obj = reactive<{ prop?: string }>({});
       effect(() => (dummy = obj.prop));
 
@@ -561,7 +561,7 @@ describe("reactivity/effect", () => {
     let dummy, parentDummy, hiddenValue: any;
     let obj;
     let parent;
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       obj = reactive<{ prop?: number }>({});
       parent = reactive({
         set prop(value) {
@@ -593,7 +593,7 @@ describe("reactivity/effect", () => {
 
     let counterSpy;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       counter = reactive({ num: 0 });
 
       counterSpy = vi.fn(() => counter.num++);
@@ -617,7 +617,7 @@ describe("reactivity/effect", () => {
       let arr;
       let counterSpy1;
       let counterSpy2;
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         arr = reactive<number[]>([]);
         counterSpy1 = vi.fn(() => (arr[key] as any)(1));
         counterSpy2 = vi.fn(() => (arr[key] as any)(2));
@@ -638,7 +638,7 @@ describe("reactivity/effect", () => {
       let counterSpy1 = vi.fn(() => (arr[key] as any)());
       let counterSpy2 = vi.fn(() => (arr[key] as any)());
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         arr = reactive<number[]>([1, 2, 3, 4]);
         counterSpy1 = vi.fn(() => (arr[key] as any)(1));
         counterSpy2 = vi.fn(() => (arr[key] as any)(2));
@@ -660,7 +660,7 @@ describe("reactivity/effect", () => {
     let counter;
     let numSpy;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       counter = reactive({ num: 0 });
       numSpy = vi.fn(() => {
         counter.num++;
@@ -686,7 +686,7 @@ describe("reactivity/effect", () => {
     let spy1;
     let spy2;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       nums = reactive({ num1: 0, num2: 1 });
 
       spy1 = vi.fn(() => (nums.num1 = nums.num2));
@@ -722,7 +722,7 @@ describe("reactivity/effect", () => {
     }
     let effect1;
     let effect2;
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       effect1 = effect(greet);
       effect2 = effect(greet);
 
@@ -743,7 +743,7 @@ describe("reactivity/effect", () => {
     let obj;
 
     let conditionalSpy;
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       obj = reactive({ prop: "value", run: false });
 
       conditionalSpy = vi.fn(() => {
@@ -811,7 +811,7 @@ describe("reactivity/effect", () => {
     let results;
     let effects: { fx: ReactiveEffectRunner; index: number }[];
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       results = reactive([0]);
       effects = [];
       for (let i = 1; i < 40; i++) {
@@ -843,7 +843,7 @@ describe("reactivity/effect", () => {
     let fx2Spy;
 
     let fx2;
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       input = reactive({ a: 1, b: 2, c: 0 });
       output = reactive({ fx1: 0, fx2: 0 });
 
@@ -952,7 +952,7 @@ describe("reactivity/effect", () => {
     let obj;
     let fnSpy;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       obj = reactive<Record<string, number>>({});
       fnSpy = vi.fn(() => {
         for (const key in obj) {
@@ -1011,7 +1011,7 @@ describe("reactivity/effect", () => {
     let dummy = {} as Record<string, number>;
     let obj;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       obj = reactive<Record<string, number>>({});
       effect(() => {
         dummy = JSON.parse(JSON.stringify(obj));
@@ -1039,7 +1039,7 @@ describe("reactivity/effect", () => {
     let model;
     let dummy;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       model = reactive(new Model());
       dummy;
       effect(() => {
@@ -1176,7 +1176,7 @@ describe("reactivity/effect", () => {
     let obj;
     let stop;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       obj = reactive({ prop: 1 });
       stop = effect(() => {
         dummy = obj.prop;
@@ -1232,7 +1232,7 @@ describe("reactivity/effect", () => {
     let obj;
     let dummy;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       obj = reactive({
         foo: markRaw({
           prop: 0,
@@ -1258,7 +1258,7 @@ describe("reactivity/effect", () => {
     let obj;
     let fnSpy;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       obj = reactive({
         foo: NaN,
       });
@@ -1278,7 +1278,7 @@ describe("reactivity/effect", () => {
     let observed: any;
     let dummy, record;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       observed = reactive([1]);
       effect(() => {
         dummy = observed.length;
@@ -1316,7 +1316,7 @@ describe("reactivity/effect", () => {
     let fnSpy;
     let fnSpy2;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       obj = reactive({ foo: 1 });
       observed = reactive({ obj });
       fnSpy = vi.fn(() => observed.obj);
@@ -1348,7 +1348,7 @@ describe("reactivity/effect", () => {
     let arr1;
     let arr2;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       arr1 = reactive(new Array(11).fill(0));
       arr2 = reactive(new Array(11).fill(0));
       effect(() => {
@@ -1376,7 +1376,7 @@ describe("reactivity/effect", () => {
       let roM;
       let fnSpy;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         m = reactive(new Map());
         roM = readonly(m);
         fnSpy = vi.fn(() => roM.get(1));
@@ -1399,7 +1399,7 @@ describe("reactivity/effect", () => {
       let roM;
       let fnSpy;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         key = reactive({});
         m = reactive(new Map());
         m.set(key, 1);
@@ -1425,7 +1425,7 @@ describe("reactivity/effect", () => {
       let has;
       let fnSpy;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
          obj = reactive({});
          has = false;
          fnSpy = vi.fn();

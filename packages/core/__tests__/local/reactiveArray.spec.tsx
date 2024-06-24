@@ -1,7 +1,7 @@
 import { isReactive, reactive, toRaw } from "../../src/reactive";
 import { isRef, ref } from "../../src/ref";
 import { watchEffect as effect } from "../../src/effect";
-import { reactivity } from "../../src";
+import { $reactive } from "../../src";
 import { act, render } from "@testing-library/react";
 import React from "react";
 
@@ -83,7 +83,7 @@ describe("reactivity/reactive/Array", () => {
     let arr;
 
     let index: number;
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       obj = {};
       arr = reactive([obj, {}]);
       index = -1;
@@ -106,7 +106,7 @@ describe("reactivity/reactive/Array", () => {
   test("delete on Array should not trigger length dependency", () => {
     let arr = reactive([1, 2, 3]);
     let fn;
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       arr = reactive([1, 2, 3]);
       fn = vi.fn();
       effect(() => {
@@ -131,7 +131,7 @@ describe("reactivity/reactive/Array", () => {
 
     let dummy;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       original = [1, 2, 3];
       observed = reactive(original);
       effect(() => {
@@ -154,7 +154,7 @@ describe("reactivity/reactive/Array", () => {
   test("shift on Array should trigger dependency once", () => {
     let arr;
     let fn;
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       arr = reactive([1, 2, 3]);
       fn = vi.fn();
       effect(() => {
@@ -181,7 +181,7 @@ describe("reactivity/reactive/Array", () => {
     let arr;
     let fn1;
     let fn2;
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       arr = ref([1]);
       fn1 = vi.fn();
       fn2 = vi.fn();
@@ -211,7 +211,7 @@ describe("reactivity/reactive/Array", () => {
     let array;
     let observed;
     let fn;
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       array = new Array(3);
       observed = reactive(array);
       fn = vi.fn();
@@ -236,7 +236,7 @@ describe("reactivity/reactive/Array", () => {
     let observed;
     let fn;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       array = new Array(3);
       observed = reactive(array);
       fn = vi.fn();
@@ -269,7 +269,7 @@ describe("reactivity/reactive/Array", () => {
     let array;
     let length;
     
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       array = reactive([1]);
       length = "";
       effect(() => {

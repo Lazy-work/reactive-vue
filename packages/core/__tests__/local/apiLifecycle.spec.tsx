@@ -5,7 +5,7 @@ import {
   onBeforeUnmount,
   onRenderTracked,
   onRenderTriggered,
-  reactivity,
+  $reactive,
 } from "../../src";
 import { onBeforeMount } from "../../src";
 import { act, render } from "@testing-library/react";
@@ -30,7 +30,7 @@ describe("api: lifecycle hooks", () => {
       expect(root.innerHTML).toBe(``);
     });
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       onBeforeMount(fn);
       return () => <div />;
     });
@@ -48,7 +48,7 @@ describe("api: lifecycle hooks", () => {
       expect(root.innerHTML).toBe(`<div></div>`);
     });
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       onMounted(fn);
       return () => <div />;
     });
@@ -67,7 +67,7 @@ describe("api: lifecycle hooks", () => {
       expect(root.innerHTML).toBe(`<div>0</div>`);
     });
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       onBeforeUpdate(fn);
       return () => <div>{count.value}</div>;
     });
@@ -92,7 +92,7 @@ describe("api: lifecycle hooks", () => {
     });
     const renderSpy = vi.fn();
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       onBeforeUpdate(fn);
       return () => {
         renderSpy();
@@ -122,7 +122,7 @@ describe("api: lifecycle hooks", () => {
       expect(root.innerHTML).toBe(`<div>1</div>`);
     });
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       onUpdated(fn);
       return () => <div>{count.value}</div>;
     });
@@ -144,11 +144,11 @@ describe("api: lifecycle hooks", () => {
       expect(root.innerHTML).toBe(`<div></div>`);
     });
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       return () => (toggle.value ? <Child /> : null);
     });
 
-    const Child = reactivity(() => {
+    const Child = $reactive(() => {
       onBeforeUnmount(fn);
       return () => <div />;
     });
@@ -170,11 +170,11 @@ describe("api: lifecycle hooks", () => {
       expect(root.innerHTML).toBe(`<!---->`);
     });
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       return () => (toggle.value ? <Child /> : null);
     });
 
-    const Child = reactivity(() => {
+    const Child = $reactive(() => {
       onUnmounted(fn);
       return () => <div />;
     });
@@ -196,11 +196,11 @@ describe("api: lifecycle hooks", () => {
       expect(root.innerHTML).toBe(`<div></div>`);
     });
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       return () => (toggle.value ? <Child /> : null);
     });
 
-    const Child = reactivity(() => {
+    const Child = $reactive(() => {
       onMounted(() => {
         onBeforeUnmount(fn);
       });
@@ -221,7 +221,7 @@ describe("api: lifecycle hooks", () => {
     const root = document.createElement("div");
     const calls: string[] = [];
 
-    const Root = reactivity(() => {
+    const Root = $reactive(() => {
       onBeforeMount(() => calls.push("root onBeforeMount"));
       onMounted(() => calls.push("root onMounted"));
       onBeforeUpdate(() => calls.push("root onBeforeUpdate"));
@@ -231,7 +231,7 @@ describe("api: lifecycle hooks", () => {
       return () => <Mid count={count.value} />;
     });
 
-    const Mid = reactivity((props: any) => {
+    const Mid = $reactive((props: any) => {
       onBeforeMount(() => calls.push("mid onBeforeMount"));
       onMounted(() => calls.push("mid onMounted"));
       onBeforeUpdate(() => calls.push("mid onBeforeUpdate"));
@@ -241,7 +241,7 @@ describe("api: lifecycle hooks", () => {
       return () => <Child count={props.count} />;
     });
 
-    const Child = reactivity((props: any) => {
+    const Child = $reactive((props: any) => {
       onBeforeMount(() => calls.push("child onBeforeMount"));
       onMounted(() => calls.push("child onMounted"));
       onBeforeUpdate(() => calls.push("child onBeforeUpdate"));
@@ -301,7 +301,7 @@ describe("api: lifecycle hooks", () => {
     });
     const obj = reactive({ foo: 1, bar: 2 });
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       onRenderTracked(onTrack);
       return () => (
         <div>
@@ -343,7 +343,7 @@ describe("api: lifecycle hooks", () => {
       bar?: number;
     }>({ foo: 1, bar: 2 });
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       onRenderTriggered(onTrigger);
       return () => (
         <div>
@@ -387,7 +387,7 @@ describe("api: lifecycle hooks", () => {
   it("runs shared hook fn for each instance", async () => {
     const fn = vi.fn();
     const toggle = ref(true);
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       return () =>
         toggle.value ? (
           <>
@@ -397,7 +397,7 @@ describe("api: lifecycle hooks", () => {
         ) : null;
     });
 
-    const Child = reactivity(() => {
+    const Child = $reactive(() => {
       onMounted(fn);
       onBeforeUnmount(fn);
       return () => <div />;

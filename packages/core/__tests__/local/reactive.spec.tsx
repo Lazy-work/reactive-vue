@@ -13,14 +13,14 @@ import {
 import { computed } from "../../src/ref";
 import { watchEffect as effect } from "../../src/effect";
 import { act, render } from "@testing-library/react";
-import { reactivity } from "../../src/index";
+import { $reactive } from "../../src/index";
 
 describe("reactivity/reactive", () => {
   test("Object", () => {
     let original = { foo: 1 };
     let observed = reactive(original);
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       original = { foo: 1 };
       observed = reactive(original);
       return () => <div />;
@@ -44,7 +44,7 @@ describe("reactivity/reactive", () => {
     let obj = {};
     let reactiveObj = reactive(obj);
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       obj = {};
       reactiveObj = reactive(obj);
 
@@ -67,7 +67,7 @@ describe("reactivity/reactive", () => {
     let original;
     let observed;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       original = {
         nested: {
           foo: 1,
@@ -94,7 +94,7 @@ describe("reactivity/reactive", () => {
     class CustomSet extends Set {}
 
     let cmap, cset, dummy;
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       cmap = reactive(new CustomMap());
 
       cset = reactive(new CustomSet());
@@ -129,7 +129,7 @@ describe("reactivity/reactive", () => {
     class CustomSet extends WeakSet {}
     let cmap, cset, dummy;
     const key = {};
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       cmap = reactive(new CustomMap());
 
       cset = reactive(new CustomSet());
@@ -161,7 +161,7 @@ describe("reactivity/reactive", () => {
     let original: any;
     let observed;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       original = { foo: 1 };
       observed = reactive(original);
 
@@ -185,7 +185,7 @@ describe("reactivity/reactive", () => {
     let original: any;
     let observed;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       original = { foo: 1 };
       observed = reactive(original);
 
@@ -209,7 +209,7 @@ describe("reactivity/reactive", () => {
     let observed;
     let raw;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       observed = reactive<{ foo?: object }>({});
       raw = {};
       return () => <div />;
@@ -229,7 +229,7 @@ describe("reactivity/reactive", () => {
     let observed;
     let observed2;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       original = { foo: 1 };
       observed = reactive(original);
       observed2 = reactive(observed);
@@ -248,7 +248,7 @@ describe("reactivity/reactive", () => {
     let observed;
     let observed2;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       original = { foo: 1 };
       observed = reactive(original);
       observed2 = reactive(original);
@@ -267,7 +267,7 @@ describe("reactivity/reactive", () => {
     let observed;
     let observed2;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       original = { foo: 1 };
       original2 = { bar: 2 };
       observed = reactive(original);
@@ -289,7 +289,7 @@ describe("reactivity/reactive", () => {
     let original;
     let dummy;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       observed = reactive({ foo: 1 });
       original = Object.create(observed);
       effect(() => (dummy = original.foo));
@@ -312,7 +312,7 @@ describe("reactivity/reactive", () => {
     let original;
     let observed;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       original = { foo: 1 };
       observed = reactive(original);
       return () => <div />;
@@ -331,7 +331,7 @@ describe("reactivity/reactive", () => {
     let observed;
     let inherted;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       original = { foo: 1 };
       observed = reactive(original);
       inherted = Object.create(observed);
@@ -351,7 +351,7 @@ describe("reactivity/reactive", () => {
     let obj;
     let raw;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       original = {};
       re = reactive(original);
       obj = new Proxy(re, {});
@@ -368,7 +368,7 @@ describe("reactivity/reactive", () => {
   test("should not unwrap Ref<T>", () => {
     let observedNumberRef;
     let observedObjectRef;
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       observedNumberRef = reactive(ref(1));
       observedObjectRef = reactive(ref({ foo: 1 }));
       return () => <div />;
@@ -387,7 +387,7 @@ describe("reactivity/reactive", () => {
     // writable
     let b;
     let obj;
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       // readonly
       a = computed(() => 1);
       // writable
@@ -417,7 +417,7 @@ describe("reactivity/reactive", () => {
     let bar;
     let observed;
     let dummy;
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       foo = ref(0);
       bar = ref(1);
       observed = reactive({ a: foo });
@@ -478,7 +478,7 @@ describe("reactivity/reactive", () => {
   test("markRaw", () => {
     let obj;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       obj = reactive({
         foo: { a: 1 },
         bar: markRaw({ b: 2 }),
@@ -524,7 +524,7 @@ describe("reactivity/reactive", () => {
     let obj;
     let dummy;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       key = Symbol();
       obj = reactive({ [key]: 1 }) as { [key]?: 1 };
       dummy;
@@ -549,16 +549,13 @@ describe("reactivity/reactive", () => {
     let key;
     let obj;
     let dummy;
-
-    effect(() => {
-      // @ts-expect-error
-      dummy = obj.hasOwnProperty(key);
-    });    
-    const Comp = reactivity(() => {
+    
+    const Comp = $reactive(() => {
       key = {};
       obj = reactive({ "[object Object]": 1 }) as { "[object Object]"?: 1 };
       dummy;
       effect(() => {
+        // @ts-expect-error
         dummy = obj.hasOwnProperty(key);
       });
       return () => <div />;

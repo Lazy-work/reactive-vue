@@ -1,5 +1,5 @@
 import { act, render } from "@testing-library/react";
-import { nextTick, reactivity } from "../../src";
+import { nextTick, $reactive } from "../../src";
 import {
   type InjectionKey,
   type Ref,
@@ -14,7 +14,7 @@ import {
 // reference: https://vue-composition-api-rfc.netlify.com/api.html#provide-inject
 describe("api: provide/inject", () => {
   it("string keys", () => {
-    const Provider = reactivity(() => {
+    const Provider = $reactive(() => {
       provide("foo", 1);
       return () => <Middle />;
     });
@@ -23,7 +23,7 @@ describe("api: provide/inject", () => {
       return <Consumer />;
     }
 
-    const Consumer = reactivity(() => {
+    const Consumer = $reactive(() => {
       const foo = inject("foo");
       return () => <div>{foo}</div>;
     });
@@ -36,7 +36,7 @@ describe("api: provide/inject", () => {
     // also verifies InjectionKey type sync
     const key: InjectionKey<number> = Symbol();
 
-    const Provider = reactivity(() => {
+    const Provider = $reactive(() => {
       provide(key, 1);
       return () => <Middle />;
     });
@@ -45,7 +45,7 @@ describe("api: provide/inject", () => {
       return <Consumer />;
     }
 
-    const Consumer = reactivity(() => {
+    const Consumer = $reactive(() => {
       const foo = inject(key) || 1;
       return () => <div>{foo + 1}</div>;
     });
@@ -55,7 +55,7 @@ describe("api: provide/inject", () => {
   });
 
   it("default values", () => {
-    const Provider = reactivity(() => {
+    const Provider = $reactive(() => {
       provide("foo", "foo");
       return () => <Middle />;
     });
@@ -64,7 +64,7 @@ describe("api: provide/inject", () => {
       return <Consumer />;
     }
 
-    const Consumer = reactivity(() => {
+    const Consumer = $reactive(() => {
       // default value should be ignored if value is provided
       const foo = inject("foo", "fooDefault");
       // default value should be used if value is not provided
@@ -104,20 +104,20 @@ describe("api: provide/inject", () => {
   });
 
   it("nested providers", () => {
-    const ProviderOne = reactivity(() => {
+    const ProviderOne = $reactive(() => {
       // override parent value
       provide("foo", "foo");
       provide("bar", "bar");
       return () => <ProviderTwo />;
     });
 
-    const ProviderTwo = reactivity(() => {
+    const ProviderTwo = $reactive(() => {
       provide("foo", "fooOverride");
       provide("baz", "baz");
       return () => <Consumer />;
     });
 
-    const Consumer = reactivity(() => {
+    const Consumer = $reactive(() => {
       const foo = inject("foo");
       const bar = inject("bar");
       const baz = inject("baz");
@@ -131,7 +131,7 @@ describe("api: provide/inject", () => {
   it("reactivity with refs", async () => {
     const count = ref(1);
 
-    const Provider = reactivity(() => {
+    const Provider = $reactive(() => {
       provide("count", count);
       return () => <Middle />;
     });
@@ -140,7 +140,7 @@ describe("api: provide/inject", () => {
       return <Consumer />;
     }
 
-    const Consumer = reactivity(() => {
+    const Consumer = $reactive(() => {
       const count = inject<Ref<number>>("count")!;
       return () => <div>{count.value}</div>;
     });
@@ -159,7 +159,7 @@ describe("api: provide/inject", () => {
   it("reactivity with readonly refs", async () => {
     const count = ref(1);
 
-    const Provider = reactivity(() => {
+    const Provider = $reactive(() => {
       provide("count", readonly(count));
       return () => <Middle />;
     });
@@ -168,7 +168,7 @@ describe("api: provide/inject", () => {
       return <Consumer />;
     }
 
-    const Consumer = reactivity(() => {
+    const Consumer = $reactive(() => {
       const count = inject<Ref<number>>("count")!;
       // should not work
       count.value++;
@@ -192,7 +192,7 @@ describe("api: provide/inject", () => {
   it("reactivity with objects", async () => {
     const rootState = reactive({ count: 1 });
 
-    const Provider = reactivity(() => {
+    const Provider = $reactive(() => {
       provide("state", rootState);
       return () => <Middle />;
     });
@@ -201,7 +201,7 @@ describe("api: provide/inject", () => {
       return <Consumer />;
     }
 
-    const Consumer = reactivity(() => {
+    const Consumer = $reactive(() => {
       const state = inject<typeof rootState>("state")!;
       return () => <div>{state.count}</div>;
     });
@@ -218,7 +218,7 @@ describe("api: provide/inject", () => {
   it("reactivity with readonly objects", async () => {
     const rootState = reactive({ count: 1 });
 
-    const Provider = reactivity(() => {
+    const Provider = $reactive(() => {
       provide("state", readonly(rootState));
       return () => <Middle />;
     });
@@ -227,7 +227,7 @@ describe("api: provide/inject", () => {
       return <Consumer />;
     }
 
-    const Consumer = reactivity(() => {
+    const Consumer = $reactive(() => {
       const state = inject<typeof rootState>("state")!;
       // should not work
       state.count++;
@@ -256,7 +256,7 @@ describe("api: provide/inject", () => {
       return <Consumer />;
     }
 
-    const Consumer = reactivity(() => {
+    const Consumer = $reactive(() => {
       const foo = inject("foo");
       expect(foo).toBeUndefined();
       return () => foo;
@@ -277,7 +277,7 @@ describe("api: provide/inject", () => {
       return <Consumer />;
     }
 
-    const Consumer = reactivity(() => {
+    const Consumer = $reactive(() => {
       const foo = inject("foo", undefined);
       return () => foo;
     });
@@ -288,7 +288,7 @@ describe("api: provide/inject", () => {
 
   // #2400
   it("should not self-inject", () => {
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       provide("foo", "foo");
       const injection = inject("foo", null);
       return () => injection;
@@ -306,7 +306,7 @@ describe("api: provide/inject", () => {
 
     it("should be true within setup", () => {
       expect.assertions(1);
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         expect(hasInjectionContext()).toBe(true);
         return () => null;
       });

@@ -10,7 +10,7 @@ import {
 import { watchEffect as effect } from "../../src/effect";
 import { type Ref, isRef, ref } from "../../src/ref";
 import { act, render } from "@testing-library/react";
-import { reactivity } from "../../src";
+import { $reactive } from "../../src";
 
 describe("shallowReactive", () => {
   test("should not make non-reactive properties reactive", () => {
@@ -63,7 +63,7 @@ describe("shallowReactive", () => {
   test("should not mutate refs", () => {
     let original;
     let foo;
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       original = ref(123);
       foo = shallowReactive<{ bar: Ref<number> | number }>({
         bar: original,
@@ -97,7 +97,7 @@ describe("shallowReactive", () => {
       let a;
       let size;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         shallowSet = shallowReactive(new Set());
         a = {};
 
@@ -156,7 +156,7 @@ describe("shallowReactive", () => {
       let shallowSet = shallowReactive(new Set());
       let a;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         onTrackFn = vi.fn();
         shallowSet = shallowReactive(new Set());
         let a;
@@ -185,7 +185,7 @@ describe("shallowReactive", () => {
       let a;
       let size;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         shallowArray = shallowReactive<unknown[]>([]);
         a = {};
 
@@ -224,7 +224,7 @@ describe("shallowReactive", () => {
       let shallowArray;
       let a;
 
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         onTrackFn = vi.fn();
         shallowArray = shallowReactive([]);
         a = {};

@@ -15,7 +15,7 @@ import {
   type ShallowRef,
   type DebuggerEvent,
   effectScope,
-  reactivity,
+  $reactive,
 } from "../../src/index";
 import { TrackOpTypes, TriggerOpTypes } from "../../src/constants";
 import { ITERATE_KEY } from "../../src/reactive/reactiveEffect";
@@ -397,7 +397,7 @@ describe("api: watch", () => {
       result2 = count === expectedState && count2Value === expectedState;
     });
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       watchEffect(() => {
         assertion(count.value, count2.value);
       });
@@ -427,7 +427,7 @@ describe("api: watch", () => {
       result = root.innerHTML === `${count}`;
     });
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       watchEffect(
         () => {
           assertion(count.value);
@@ -456,7 +456,7 @@ describe("api: watch", () => {
       result = root.innerHTML === `${count}`;
     });
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       watchPostEffect(() => {
         assertion(count.value);
       });
@@ -497,7 +497,7 @@ describe("api: watch", () => {
       result2 = count2.value === expectedState;
     });
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       watchEffect(
         () => {
           assertion(count.value);
@@ -545,7 +545,7 @@ describe("api: watch", () => {
       result2 = count2.value === expectedState;
     });
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       watchSyncEffect(() => {
         assertion(count.value);
       });
@@ -571,12 +571,12 @@ describe("api: watch", () => {
     const toggle = ref(true);
     const cb = vi.fn();
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       watch(toggle, cb, { flush: "post" });
       return () => null;
     });
 
-    const App = reactivity(() => {
+    const App = $reactive(() => {
       return () => (toggle.value ? <Comp /> : null);
     });
 
@@ -593,12 +593,12 @@ describe("api: watch", () => {
     const toggle = ref(true);
     const cb = vi.fn();
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       watch(toggle, cb, { flush: "pre" });
       return () => null;
     });
 
-    const App = reactivity(() => {
+    const App = $reactive(() => {
       return () => (toggle.value ? <Comp /> : null);
     });
 
@@ -615,16 +615,16 @@ describe("api: watch", () => {
     const visible = ref(true);
     const cb = vi.fn();
 
-    const Parent = reactivity((props: { visible: boolean }) => {
+    const Parent = $reactive((props: { visible: boolean }) => {
       return () => (visible.value ? <Comp /> : null);
     });
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       watch(visible, cb, { flush: "pre" });
       return () => null;
     });
 
-    const App = reactivity(() => {
+    const App = $reactive(() => {
       return () => <Parent visible={visible.value} />;
     });
 
@@ -641,7 +641,7 @@ describe("api: watch", () => {
     const b = ref(0);
     const calls: string[] = [];
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       watch(
         () => b.value,
         (val) => {
@@ -656,7 +656,7 @@ describe("api: watch", () => {
       };
     });
 
-    const Parent = reactivity((props: { a: number }) => {
+    const Parent = $reactive((props: { a: number }) => {
       watch(
         () => b.value,
         (val) => {
@@ -671,7 +671,7 @@ describe("api: watch", () => {
       };
     });
 
-    const App = reactivity(() => {
+    const App = $reactive(() => {
       return () => <Parent a={b.value} />;
     });
 
@@ -698,7 +698,7 @@ describe("api: watch", () => {
     const c = ref(0);
     const calls: string[] = [];
 
-    const Comp = reactivity((props: { a: number; b: number }) => {
+    const Comp = $reactive((props: { a: number; b: number }) => {
       watch(
         () => props.a + props.b,
         () => {
@@ -723,7 +723,7 @@ describe("api: watch", () => {
       };
     });
 
-    const App = reactivity(() => {
+    const App = $reactive(() => {
       return () => <Comp a={a.value} b={b.value} />;
     });
 
@@ -745,7 +745,7 @@ describe("api: watch", () => {
     const count = ref(0);
     const calls: string[] = [];
 
-    const App = reactivity(() => {
+    const App = $reactive(() => {
       watch(
         count,
         () => {
@@ -772,7 +772,7 @@ describe("api: watch", () => {
     const toggle = ref(false);
     let dom: HTMLElement | null = null;
 
-    const App = reactivity(() => {
+    const App = $reactive(() => {
       const domRef = reactRef<HTMLElement | null>(null);
 
       watch(

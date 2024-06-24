@@ -8,7 +8,7 @@ import {
   watchEffect as effect,
   isReadonly,
   reactive,
-  reactivity,
+  $reactive,
   ref,
   shallowRef,
   toRaw,
@@ -23,7 +23,7 @@ describe("reactivity/computed", () => {
     let value;
     let cValue;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       value = reactive<{ foo?: number }>({});
       cValue = computed(() => value.foo);
       return () => <div />;
@@ -68,7 +68,7 @@ describe("reactivity/computed", () => {
     let cValue;
     let dummy;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       value = reactive<{ foo?: number }>({});
       cValue = computed(() => value.foo);
       effect(() => {
@@ -94,7 +94,7 @@ describe("reactivity/computed", () => {
     let c1;
     let c2;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       value = reactive({ foo: 0 });
       c1 = computed(() => value.foo);
       c2 = computed(() => c1.value + 1);
@@ -120,7 +120,7 @@ describe("reactivity/computed", () => {
     let c2;
     let dummy;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       value = reactive({ foo: 0 });
       getter1 = vi.fn(() => value.foo);
       getter2 = vi.fn(() => {
@@ -157,7 +157,7 @@ describe("reactivity/computed", () => {
     let c2;
 
     let dummy;
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       value = reactive({ foo: 0 });
       getter1 = vi.fn(() => value.foo);
       getter2 = vi.fn(() => {
@@ -190,7 +190,7 @@ describe("reactivity/computed", () => {
     let cValue;
     let dummy;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       value = reactive<{ foo?: number }>({});
       cValue = computed(() => value.foo);
 
@@ -213,7 +213,7 @@ describe("reactivity/computed", () => {
   it("should support setter", () => {
     let n;
     let plusOne;
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       n = ref(1);
       plusOne = computed({
         get: () => n.value + 1,
@@ -240,7 +240,7 @@ describe("reactivity/computed", () => {
     let plusOne;
 
     let dummy;
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       n = ref(1);
       plusOne = computed({
         get: () => n.value + 1,
@@ -269,9 +269,10 @@ describe("reactivity/computed", () => {
     let n;
     let plusOne;
       
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       n = ref(0);
       plusOne = computed(() => n.value + 1);
+      plusOneValues = [];
       effect(() => {
         n.value;
         plusOneValues.push(plusOne.value);
@@ -294,7 +295,7 @@ describe("reactivity/computed", () => {
     let n;
     let plusOne;
     
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       n = ref(1);
       plusOne = computed(() => n.value + 1);
       return () => <div />;
@@ -314,7 +315,7 @@ describe("reactivity/computed", () => {
   it("should be readonly", () => {
     let a;
     let x;
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       a = { a: 1 };
       x = computed(() => a);
       return () => <div />;
@@ -339,7 +340,7 @@ describe("reactivity/computed", () => {
 
   it("should expose value when stopped", () => {
     let x = computed(() => 1);
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       x = computed(() => 1);
       x.effect.stop();
       return () => <div />;
@@ -357,7 +358,7 @@ describe("reactivity/computed", () => {
     });
     let obj;
     let c;
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       obj = reactive({ foo: 1, bar: 2 });
       c = computed(() => (obj.foo, "bar" in obj, Object.keys(obj)), {
         onTrack,
@@ -399,7 +400,7 @@ describe("reactivity/computed", () => {
     let obj;
     let c;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       obj = reactive<{ foo?: number }>({ foo: 1 });
       c = computed(() => obj.foo, { onTrigger });
       return () => <div />;
@@ -443,7 +444,7 @@ describe("reactivity/computed", () => {
     let c;
     let d;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       a = ref<null | { v: number }>({
         v: 1,
       });
@@ -483,7 +484,7 @@ describe("reactivity/computed", () => {
     let isLoaded;
     let msg;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       items = ref<number[]>();
       isLoaded = computed(() => {
         return !!items.value;
@@ -522,7 +523,7 @@ describe("reactivity/computed", () => {
     let isLoaded;
     let msg;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       items = ref<number[]>();
       isLoaded = computed(() => {
         return !!items.value;
@@ -567,7 +568,7 @@ describe("reactivity/computed", () => {
     let d;
     let e;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
        a = ref(0);
        b = computed(() => {
         return a.value % 3 !== 0;

@@ -7,7 +7,7 @@ import {
   isReadonly,
   markRaw,
   reactive,
-  reactivity,
+  $reactive,
   readonly,
   ref,
   toRaw,
@@ -96,7 +96,7 @@ describe("reactivity/readonly", () => {
     it("should not trigger effects", () => {
       let wrapped: any;
       let dummy;
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         wrapped = readonly({ a: 1 });
         dummy;
         effect(() => {
@@ -171,7 +171,7 @@ describe("reactivity/readonly", () => {
     it("should not trigger effects", () => {
       let wrapped: any;
       let dummy;
-      const Comp = reactivity(() => {
+      const Comp = $reactive(() => {
         wrapped = readonly([{ a: 1 }]);
         effect(() => {
           dummy = wrapped[0].a;
@@ -226,7 +226,7 @@ describe("reactivity/readonly", () => {
         let key;
         let dummy;
         
-        const Comp = reactivity(() => {
+        const Comp = $reactive(() => {
           map = readonly(new Collection());
           key = {};
           effect(() => {
@@ -346,7 +346,7 @@ describe("reactivity/readonly", () => {
         let set;
         let key;
         let dummy;
-        const Comp = reactivity(() => {
+        const Comp = $reactive(() => {
           set = readonly(new Collection());
           key = {};
           effect(() => {
@@ -420,7 +420,7 @@ describe("reactivity/readonly", () => {
     let b;
 
     let dummy;
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       a = reactive({ n: 1 });
       b = readonly(a);
 
@@ -450,7 +450,7 @@ describe("reactivity/readonly", () => {
     let roMap;
 
     let dummy;
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       map = new Map();
       map.set("foo", 1);
 
@@ -484,7 +484,7 @@ describe("reactivity/readonly", () => {
     let roArr;
     let context;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       arr = [1];
       roArr = readonly(arr);
       context = getContext();
@@ -506,7 +506,7 @@ describe("reactivity/readonly", () => {
 
     let dummy;
 
-    const Comp = reactivity(() => {
+    const Comp = $reactive(() => {
       a = reactive(new Map());
       b = readonly(a);
       a.set("foo", 1);
