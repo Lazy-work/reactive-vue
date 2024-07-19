@@ -17,7 +17,6 @@ class GlobalContext implements IContext {
   #provider: Map<any, any> = new Map();
   #store: any[] = [];
   #storeCursor = 0;
-  #runningOnUpdated = false;
   #disabledEffects: number[] = [];
   #currentEffect?: AbstractEffect = undefined;
   #pendingEffects: number[] = [];
@@ -39,7 +38,6 @@ class GlobalContext implements IContext {
   reset() {
     this.#store = [];
     this.#storeCursor = 0;
-    this.#runningOnUpdated = false;
     this.#disabledEffects = [];
     this.#currentEffect = undefined;
 
@@ -65,18 +63,6 @@ class GlobalContext implements IContext {
     this.#storeCursor++;
 
     return index;
-  }
-
-  get runningOnUpdated() {
-    return this.#runningOnUpdated;
-  }
-
-  runOnUpdated() {
-    this.#runningOnUpdated = true;
-  }
-
-  endOnUpdated() {
-    this.#runningOnUpdated = false;
   }
 
   setStoreValueAt(index: number, value: any) {

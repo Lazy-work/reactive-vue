@@ -87,7 +87,6 @@ class Context implements IContext {
   #hookKeys: string[][] = [];
   #hookValues: any[][] = [];
   #hookRefs: HookRef[][] = [];
-  #runningOnUpdated = false;
   #pendingEffects: number[] = [];
   #pendingSum: number = 0;
   #disabledEffects: number[] = [];
@@ -312,17 +311,6 @@ class Context implements IContext {
 
   get id() {
     return this.#id;
-  }
-  get runningOnUpdated() {
-    return this.#runningOnUpdated;
-  }
-
-  runOnUpdated() {
-    this.#runningOnUpdated = true;
-  }
-
-  endOnUpdated() {
-    this.#runningOnUpdated = false;
   }
 
   getValueAt(index: number) {

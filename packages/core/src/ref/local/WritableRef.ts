@@ -23,10 +23,6 @@ class WritableRef<T = any> extends LocalRef<T> {
   }
 
   set value(newValue: T) {
-    if (this.context.runningOnUpdated) {
-      throw new Error('You cannot mutate a signal in an onUpdated effect');
-    }
-
     if (!Object.is(newValue, this.context.getValueAt(this.index))) {
       this.#setter(newValue);
       this.trigger();

@@ -14,10 +14,7 @@ interface IContext {
     getValueAt(index: number): any
 
     addToStore(value: any): number
-    get runningOnUpdated(): boolean
 
-    runOnUpdated(): void
-    endOnUpdated(): void
     setStoreValueAt(index: number, value: any): void
 
     get currentEffect(): AbstractEffect | undefined

@@ -29,11 +29,7 @@ class WritableRef<T = any> extends GlobalRef<T> {
   }
 
   set value(newValue: T) {
-    const manager = getContext();
     const globalManager = getGlobalContext();
-    if (manager.runningOnUpdated) {
-      throw new Error('You cannot mutate a state in an onUpdated effect');
-    }
 
     if (!Object.is(newValue, globalManager.getValueAt(this.index))) {
       this._setter(newValue);

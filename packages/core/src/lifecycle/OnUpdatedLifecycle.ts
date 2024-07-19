@@ -18,11 +18,9 @@ class OnUpdatedLifecycle implements ILifecycle {
   }
 
   run() {
-    this.#context.runOnUpdated();
     setContext(this.#context);
     this.#callback();
     if (this.#context.isExecuted()) undoContext();
-    this.#context.endOnUpdated();
   }
 }
 
