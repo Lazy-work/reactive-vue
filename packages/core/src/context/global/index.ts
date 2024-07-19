@@ -12,6 +12,7 @@ import type IContext from '../IContext';
 import EffectScope, { getCurrentScope, setCurrentScope } from '../../effect/EffectScope';
 import { WatchEffectOptions, WatchOptions, WatchSource } from '../../types';
 import { DebuggerOptions } from '../..';
+import { isFunction } from '@vue/shared';
 
 class GlobalContext implements IContext {
   #provider: Map<any, any> = new Map();
@@ -213,7 +214,7 @@ class GlobalContext implements IContext {
     mustBeOutsideComponent();
     let getter;
     let setter;
-    if (typeof getterOrOptions === 'function') {
+    if (isFunction(getterOrOptions)) {
       getter = getterOrOptions;
     } else {
       getter = getterOrOptions.get;

@@ -26,7 +26,7 @@ import type IContext from '../IContext';
 import { RENDER_EFFECT } from '../../constants';
 import { queueFlush } from '../../lifecycle';
 import EffectScope, { getCurrentScope, setCurrentScope } from '../../effect/EffectScope';
-import { NOOP } from '@vue/shared';
+import { isArray, isFunction, isObject, isSymbol, NOOP } from '@vue/shared';
 import { DebuggerOptions } from '../..';
 import { warn } from '../../reactive/warning';
 
@@ -162,7 +162,7 @@ class Context implements IContext {
     if (this.#executed) {
       for (const hook of this.#hooks) {
         const args =
-          typeof hook.params === 'function' ? hook.params() : typeof hook.params !== 'undefined' ? hook.params : [];
+          isFunction(hook.params) ? hook.params() : hook.params !== undefined ? hook.params : [];
         const result = hook.hook(...args);
 
         if (hook.hook === useState) {
@@ -170,7 +170,7 @@ class Context implements IContext {
         } else if (nativeHooks.includes(hook.hook)) {
           this.#store[hook.index] = result;
         } else {
-          if (typeof result === 'object' && result !== null && !hook.shallow) {
+          if (isObject(result) && !hook.shallow) {
             if (Array.isArray(result)) {
               for (let i = 0; i < result.length; i++) {
                 this.#hookValues[hook.index][i] = result[i];
@@ -235,7 +235,9 @@ class Context implements IContext {
     this.computeEffects(this.#preEffects);
     this.computeEffects(this.#preWatcherEffects);
 
-    if (this.#executed) for (const effect of this.#onBeforeUpdateEffects) effect();
+    if (this.#executed) { 
+      for (const effect of this.#onBeforeUpdateEffects) effect() 
+    };
 
     if (this.#postWatcherEffects.length || this.#postEffects.length || this.#onUpdatedEffects.length) {
       useEffect(() => {
@@ -516,7 +518,7 @@ class Context implements IContext {
     mustBeReactiveComponent();
     let getter;
     let setter;
-    if (typeof getterOrOptions === 'function') {
+    if (isFunction(getterOrOptions)) {
       getter = getterOrOptions;
     } else {
       getter = getterOrOptions.get;
@@ -644,7 +646,7 @@ class Context implements IContext {
   }
 
   defineProps(keys: string[]) {
-    if (!(typeof keys === 'object') || !Array.isArray(keys)) {
+    if (!isArray(keys)) {
       warn('Wrong type passed, the keys value must be an array of string');
       return;
     }
@@ -679,12 +681,13 @@ class Context implements IContext {
             return;
           }
 
-          const index = keys.indexOf(key as string); if (index === -1) {
+          const index = keys.indexOf(key as string); 
+          if (index === -1) {
             if (__DEV__) warn('Key not found on props');
             return undefined;
           }
           if (context.currentEffect) {
-            if (typeof context.#propsEffects[index] === 'undefined') context.#propsEffects[index] = [];
+            if (context.#propsEffects[index] === undefined) context.#propsEffects[index] = [];
             const effectId = context.currentEffect.id;
             const slot = Math.floor(effectId / 32);
             const digit = 1 << (effectId % 32);
@@ -720,15 +723,15 @@ class Context implements IContext {
       {},
       {
         get(_, key) {
-          if (typeof key === 'symbol') {
+          if (isSymbol(key)) {
             if (__DEV__) warn('Symbol as key are not allowed');
-            return;
+            return undefined;
           }
 
           const index = keys.indexOf(key as string);
           if (index === -1) return undefined;
           if (context.currentEffect) {
-            if (typeof context.#propsEffects[index] === 'undefined') context.#propsEffects[index] = [];
+            if (context.#propsEffects[index] === undefined) context.#propsEffects[index] = [];
             const effectId = context.currentEffect.id;
             const slot = Math.floor(effectId / 32);
             const digit = 1 << (effectId % 32);
@@ -758,14 +761,14 @@ class Context implements IContext {
   }
 
   trackState<T>(hookIndex: number, value: T) {
-    const valueIndex = this.addToHookStore(hookIndex, value);
-
-    if (typeof value === 'function') {
+    if (isFunction(value)) {
+      const valueIndex = this.addToHookStore(hookIndex, value);
       type ValueType = typeof value;
       const ref = new HookCallableRef<Parameters<ValueType>, ReturnType<ValueType>>(this, hookIndex, valueIndex);
       this.#hookRefs[hookIndex].push(ref);
       return (...args) => ref.call(...args);
     }
+    const valueIndex = this.addToHookStore(hookIndex, value);
     const ref = new HookRef<T>(this, hookIndex, valueIndex);
 
     this.#hookRefs[hookIndex].push(ref);
@@ -775,9 +778,20 @@ class Context implements IContext {
 
   trackStates<T extends object>(hookIndex: number, values: T) {
     if (Array.isArray(values)) {
-      return values.map((value) => this.trackState(hookIndex, value));
+      const result = [];
+      for (const value of values) {
+        result.push(this.trackState(hookIndex, value));
+      }
+      return result;
     }
-    return Object.fromEntries(Object.entries(values).map(([key, value]) => [key, this.trackState(hookIndex, value)]));
+
+    const result = {};
+
+    for (const [key, value] of Object.entries(values)) {
+      result[key] = this.trackState(hookIndex, value);
+    }
+
+    return result;
   }
 
   addToHookStore(hookIndex: number, value: any) {
