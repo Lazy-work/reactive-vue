@@ -7,13 +7,13 @@ export function isReactComponent() {
 }
 
 export function mustBeReactiveComponent() {
-  if (isReactComponent() && getContext() === globalThis.__v_globalContext) {
+  if (__DEV__ && isReactComponent() && getContext() === globalThis.__v_globalContext) {
     throw new Error('You cannot use a directive inside a none reactive component');
   }
 }
 
 export function mustBeOutsideComponent() {
-  if (isReactComponent()) {
+  if (__DEV__ && isReactComponent()) {
     throw new Error('You cannot use a directive inside a none reactive component');
   }
 }

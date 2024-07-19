@@ -28,6 +28,7 @@ import { queueFlush } from '../../lifecycle';
 import EffectScope, { getCurrentScope, setCurrentScope } from '../../effect/EffectScope';
 import { NOOP } from '@vue/shared';
 import { DebuggerOptions } from '../..';
+import { warn } from '../../reactive/warning';
 
 const nativeHooks = [
   React.useReducer,
@@ -73,7 +74,9 @@ class Context implements IContext {
   #elements: WeakMap<any, any> = new WeakMap();
   #provider: Map<any, any> = new Map();
   #tick: () => void = NOOP;
-  #renderTrigger: () => void;
+  #renderTrigger: () => void = __DEV__ ? () => {
+    warn('Can\'t trigger a new rendering, the state is not setup properly');
+  } : NOOP;
   #hooks: any[] = [];
   #propsKeys: string[] = [];
   #propsValues: any[] = [];
@@ -114,13 +117,10 @@ class Context implements IContext {
   #mounted = false;
   #children: () => React.ReactNode = () => null;
 
-
   constructor() {
-    this.#renderTrigger = () => {
-      throw new Error("Can't trigger a new rendering, the state is not setup properly");
-    };
     this.#scope.on();
   }
+
   provide(key: any, value: any): void {
     this.#provider.set(key, value);
   }
@@ -355,7 +355,6 @@ class Context implements IContext {
   }
 
   set pendingEffects(value: number[]) {
-    if (typeof value !== 'number') throw new Error('The value must be a number');
     this.#pendingEffects = value;
   }
 
@@ -657,8 +656,10 @@ class Context implements IContext {
   }
 
   defineProps(keys: string[]) {
-    if (!(typeof keys === 'object') || !Array.isArray(keys))
-      throw new TypeError('Wrong type passed, the keys value must be an array of string');
+    if (!(typeof keys === 'object') || !Array.isArray(keys)) {
+      warn('Wrong type passed, the keys value must be an array of string');
+      return;
+    }
     this.#staticProps = true;
     this.#propsKeys = keys;
   }
@@ -686,11 +687,14 @@ class Context implements IContext {
       {
         get(_, key) {
           if (typeof key === 'symbol') {
-            throw new Error('Symbol as key are not allowed');
+            if (__DEV__) warn('Symbol as key are not allowed');
+            return;
           }
 
-          const index = keys.indexOf(key as string);
-          if (index === -1) return undefined;
+          const index = keys.indexOf(key as string); if (index === -1) {
+            if (__DEV__) warn('Key not found on props');
+            return undefined;
+          }
           if (context.currentEffect) {
             if (typeof context.#propsEffects[index] === 'undefined') context.#propsEffects[index] = [];
             const effectId = context.currentEffect.id;
@@ -703,7 +707,8 @@ class Context implements IContext {
           return context.#propsValues[index];
         },
         set() {
-          throw new Error("You can't mutate props");
+          if (__DEV__) warn("You can't mutate props");
+          return true;
         },
       },
     );
@@ -728,7 +733,8 @@ class Context implements IContext {
       {
         get(_, key) {
           if (typeof key === 'symbol') {
-            throw new Error('Symbol as key are not allowed');
+            if (__DEV__) warn('Symbol as key are not allowed');
+            return;
           }
 
           const index = keys.indexOf(key as string);
@@ -745,7 +751,8 @@ class Context implements IContext {
           return context.#propsValues[index];
         },
         set() {
-          throw new Error("You can't mutate props");
+          if (__DEV__) warn("You can't mutate props");
+          return true;
         },
       },
     );
