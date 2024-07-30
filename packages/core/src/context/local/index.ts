@@ -77,6 +77,7 @@ class Context implements IContext {
   #renderTrigger: () => void = __DEV__ ? () => {
     warn('Can\'t trigger a new rendering, the state is not setup properly');
   } : NOOP;
+  #isRunning = false;
   #hooks: any[] = [];
   #propsKeys: string[] = [];
   #propsValues: any[] = [];
@@ -110,7 +111,7 @@ class Context implements IContext {
   #onMountedEffects: OnMountedLifecycle[] = [];
   #unmountedEffects: OnUnmountedLifecycle[] = [];
 
-  #shouldRender = false;
+  #renderingScheduled = false;
   #executed = false;
   #nbExecution = 0;
   #mounted = false;
@@ -138,7 +139,8 @@ class Context implements IContext {
     this.#scope.off();
     this.#currentEffect = previousEffect;
     this.#executed = true;
-    this.#shouldRender = false;
+    this.#isRunning = false;
+    this.#renderingScheduled = false;
     return result;
   }
 
@@ -149,12 +151,13 @@ class Context implements IContext {
   inject(key: any): any {
     const value = this.#provider.get(key);
 
-    if (typeof value !== 'undefined') return value;
+    if (value !== undefined) return value;
     return this.#parent?.inject(key);
   }
 
   init() {
     this.#nbExecution++;
+    this.#isRunning = true;
     if (!this.#executed) this.#tick = queueFlush();
   }
 
@@ -235,8 +238,8 @@ class Context implements IContext {
     this.computeEffects(this.#preEffects);
     this.computeEffects(this.#preWatcherEffects);
 
-    if (this.#executed) { 
-      for (const effect of this.#onBeforeUpdateEffects) effect() 
+    if (this.#executed) {
+      for (const effect of this.#onBeforeUpdateEffects) effect()
     };
 
     if (this.#postWatcherEffects.length || this.#postEffects.length || this.#onUpdatedEffects.length) {
@@ -636,13 +639,15 @@ class Context implements IContext {
 
     this.#renderTrigger = () => {
       setState(!s);
-      this.#shouldRender = true;
+      this.#renderingScheduled = true;
       this.#tick = queueFlush();
     };
   }
 
   triggerRendering() {
-    if (this.#executed && !this.#shouldRender) this.#renderTrigger();
+    if (!this.#isRunning && !this.#renderingScheduled) {
+      this.#renderTrigger();
+    }
   }
 
   defineProps(keys: string[]) {
@@ -676,16 +681,14 @@ class Context implements IContext {
       {},
       {
         get(_, key) {
-          if (typeof key === 'symbol') {
+          if (isSymbol(key)) {
             if (__DEV__) warn('Symbol as key are not allowed');
             return;
           }
 
-          const index = keys.indexOf(key as string); 
-          if (index === -1) {
-            if (__DEV__) warn('Key not found on props');
-            return undefined;
-          }
+          const index = keys.indexOf(key as string);
+          if (index === -1) return undefined;
+          
           if (context.currentEffect) {
             if (context.#propsEffects[index] === undefined) context.#propsEffects[index] = [];
             const effectId = context.currentEffect.id;
@@ -792,6 +795,10 @@ class Context implements IContext {
     }
 
     return result;
+  }
+
+  createTargets(paths: any) {
+    return [];
   }
 
   addToHookStore(hookIndex: number, value: any) {
