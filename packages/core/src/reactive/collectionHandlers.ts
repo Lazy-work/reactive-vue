@@ -1,11 +1,9 @@
 import { toRaw, toReactive, toReadonly } from '.'
 import {
-  ITERATE_KEY,
-  MAP_KEY_ITERATE_KEY,
   track,
   trigger,
 } from './reactiveEffect'
-import { IS_GLOBAL_KEY, ReactiveFlags, TrackOpTypes, TriggerOpTypes } from '../constants'
+import { IS_GLOBAL_KEY, ITERATE_KEY, MAP_KEY_ITERATE_KEY, ReactiveFlags, TrackOpTypes, TriggerOpTypes } from '../constants'
 import { capitalize, hasChanged, hasOwn, isMap, toRawType } from '@vue/shared'
 import { warn } from './warning'
 

@@ -5,12 +5,10 @@ import {
   useReducer,
   useTransition,
 } from "react";
-import MemoEffect from "../../effect/MemoEffect";
-import { getContext } from "../../management/setting";
 import ReadableRef from "./ReadableRef";
 import WritableRef from "./WritableRef";
 import { mustBeReactiveComponent } from "../../utils";
-import { isRef, unref } from "..";
+import { isRef, unref } from "../utils";
 import ReactRef from "../../ReactRef";
 import { isObject } from "@vue/shared";
 import { reactive } from "../../reactive";

@@ -10,8 +10,8 @@ import {
   shallowReadonlyMap,
   toRaw,
 } from '.'
-import { IS_GLOBAL_KEY, ReactiveFlags, TrackOpTypes, TriggerOpTypes } from '../constants'
-import { enableTracking, ITERATE_KEY, pauseTracking, track, trigger } from './reactiveEffect'
+import { IS_GLOBAL_KEY, ITERATE_KEY, ReactiveFlags, TrackOpTypes, TriggerOpTypes } from '../constants'
+import { enableTracking, pauseTracking, track, trigger } from './reactiveEffect'
 import {
   hasChanged,
   hasOwn,
@@ -41,37 +41,37 @@ const arrayInstrumentations = /*#__PURE__*/ createArrayInstrumentations()
 
 function createArrayInstrumentations() {
   const instrumentations: Record<string, Function> = {}
-  // instrument identity-sensitive Array methods to account for possible reactive
-  // values
-  ;(['includes', 'indexOf', 'lastIndexOf'] as const).forEach(key => {
-    instrumentations[key] = function (this: unknown[], ...args: unknown[]) {
-      const arr = toRaw(this) as any
-      for (let i = 0, l = this.length; i < l; i++) {
-        track(arr, TrackOpTypes.GET, i + '')
+    // instrument identity-sensitive Array methods to account for possible reactive
+    // values
+    ;(['includes', 'indexOf', 'lastIndexOf'] as const).forEach(key => {
+      instrumentations[key] = function (this: unknown[], ...args: unknown[]) {
+        const arr = toRaw(this) as any
+        for (let i = 0, l = this.length; i < l; i++) {
+          track(arr, TrackOpTypes.GET, i + '')
+        }
+        // we run the method using the original args first (which may be reactive)
+        const res = arr[key](...args)
+        if (res === -1 || res === false) {
+          // if that didn't work, run it again using raw values.
+          return arr[key](...args.map(toRaw))
+        } else {
+          return res
+        }
       }
-      // we run the method using the original args first (which may be reactive)
-      const res = arr[key](...args)
-      if (res === -1 || res === false) {
-        // if that didn't work, run it again using raw values.
-        return arr[key](...args.map(toRaw))
-      } else {
+    })
+    // instrument length-altering mutation methods to avoid length being tracked
+    // which leads to infinite loops in some cases (#2137)
+    ;(['push', 'pop', 'shift', 'unshift', 'splice'] as const).forEach(key => {
+      instrumentations[key] = function (this: unknown[], ...args: unknown[]) {
+        pauseTracking();
+        // pauseScheduling()
+        const res = (toRaw(this) as any)[key].apply(this, args)
+        enableTracking();
+        // resetScheduling()
+        // resetTracking()
         return res
       }
-    }
-  })
-  // instrument length-altering mutation methods to avoid length being tracked
-  // which leads to infinite loops in some cases (#2137)
-  ;(['push', 'pop', 'shift', 'unshift', 'splice'] as const).forEach(key => {
-    instrumentations[key] = function (this: unknown[], ...args: unknown[]) {
-      pauseTracking();
-      // pauseScheduling()
-      const res = (toRaw(this) as any)[key].apply(this, args)
-      enableTracking();
-      // resetScheduling()
-      // resetTracking()
-      return res
-    }
-  })
+    })
   return instrumentations
 }
 
@@ -87,7 +87,7 @@ class BaseReactiveHandler implements ProxyHandler<Target> {
   constructor(
     protected readonly _isReadonly = false,
     protected readonly _isShallow = false,
-  ) {}
+  ) { }
 
   get(target: Target, key: string | symbol, receiver: object) {
     const isReadonly = this._isReadonly,
@@ -101,14 +101,14 @@ class BaseReactiveHandler implements ProxyHandler<Target> {
     } else if (key === ReactiveFlags.RAW) {
       if (
         receiver ===
-          (isReadonly
-            ? isShallow
-              ? shallowReadonlyMap
-              : readonlyMap
-            : isShallow
-              ? shallowReactiveMap
-              : reactiveMap
-          ).get(target) ||
+        (isReadonly
+          ? isShallow
+            ? shallowReadonlyMap
+            : readonlyMap
+          : isShallow
+            ? shallowReactiveMap
+            : reactiveMap
+        ).get(target) ||
         // receiver is not the reactive proxy, but has the same prototype
         // this means the reciever is a user proxy of the reactive proxy
         Object.getPrototypeOf(target) === Object.getPrototypeOf(receiver)
@@ -157,6 +157,36 @@ class BaseReactiveHandler implements ProxyHandler<Target> {
     }
 
     return res
+  }
+}
+
+const targets = [];
+const PARENT_KEY = '__v_parentKey';
+const TRACKED_CHILDREN = '__v_trackedChildren';
+
+function isAllSelector(value: any) {
+  if (isObject(value) && value.type === 'all') return true
+  return false;
+}
+class HookReactiveHandler extends BaseReactiveHandler {
+  get(target: Target, key: string | symbol, receiver: object) {
+    const realTarget = targets[target[PARENT_KEY]];
+    const trackedChildren = target[TRACKED_CHILDREN];
+    const isTrackedKey = isAllSelector(trackedChildren[0]) || trackedChildren.includes(key);
+    if (realTarget && isTrackedKey) {
+      return super.get(realTarget, key, receiver);
+    }
+
+    return target[key];
+  }
+
+  set(
+    target: object,
+    key: string | symbol,
+    value: unknown,
+  ): boolean {
+    target[key] = value;
+    return true;
   }
 }
 
@@ -263,6 +293,8 @@ class ReadonlyReactiveHandler extends BaseReactiveHandler {
 
 export const mutableHandlers: ProxyHandler<object> =
   /*#__PURE__*/ new MutableReactiveHandler()
+
+export const hookHandlers: ProxyHandler<object> = new HookReactiveHandler();
 
 export const readonlyHandlers: ProxyHandler<object> =
   /*#__PURE__*/ new ReadonlyReactiveHandler()

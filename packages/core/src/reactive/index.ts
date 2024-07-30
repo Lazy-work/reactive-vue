@@ -1,5 +1,6 @@
 import { def, isObject, toRawType } from '@vue/shared'
 import {
+  hookHandlers,
   mutableHandlers,
   readonlyHandlers,
   shallowReactiveHandlers,
@@ -95,6 +96,15 @@ export function reactive(target: object) {
   )
 }
 
+export function hookReactive(target: object) {
+  return createReactiveObject(
+    target,
+    false,
+    hookHandlers,
+    mutableCollectionHandlers,
+    reactiveMap,
+  )
+}
 export declare const ShallowReactiveMarker: unique symbol
 
 export type ShallowReactive<T> = T & { [ShallowReactiveMarker]?: true }

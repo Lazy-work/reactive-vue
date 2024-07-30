@@ -1,7 +1,5 @@
 import { isObject } from "@vue/shared";
-import MemoEffect from "../../effect/MemoEffect";
 import WritableRef from "./WritableRef";
-import { getContext } from '../../management/setting';
 import ReactRef from "../../ReactRef";
 import { mustBeOutsideComponent } from "../../utils";
 import ReadableRef from "./ReadableRef";

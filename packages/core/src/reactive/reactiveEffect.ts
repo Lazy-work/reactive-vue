@@ -1,12 +1,9 @@
 import { isArray, isIntegerKey, isMap, isSymbol } from '@vue/shared';
-import { type TrackOpTypes, TriggerOpTypes } from '../constants'
+import { ITERATE_KEY, MAP_KEY_ITERATE_KEY, type TrackOpTypes, TriggerOpTypes } from '../constants'
 import AbstractEffect from '../effect/AbstractEffect';
 import { contextListMap, triggerListeners } from '.';
 import IContext from '../context/IContext';
 import { getContext } from '../management/setting';
-
-export const ITERATE_KEY = Symbol(__DEV__ ? 'iterate' : '')
-export const MAP_KEY_ITERATE_KEY = Symbol(__DEV__ ? 'Map key iterate' : '')
 
 let shouldTrack = true
 

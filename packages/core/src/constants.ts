@@ -29,8 +29,8 @@ export enum ReactiveFlags {
   IS_SHALLOW = '__v_isShallow',
   RAW = '__v_raw',
 }
-
-export { ITERATE_KEY, MAP_KEY_ITERATE_KEY } from './reactive/reactiveEffect';
+export const ITERATE_KEY = Symbol(__DEV__ ? 'iterate' : '')
+export const MAP_KEY_ITERATE_KEY = Symbol(__DEV__ ? 'Map key iterate' : '')
 export const IS_GLOBAL_KEY = Symbol('__v_isGlobal');
 export const INITIAL_CONTEXT_KEY = Symbol('__v_initialContext');
 export const CONTEXT_KEY = Symbol('__v_context');

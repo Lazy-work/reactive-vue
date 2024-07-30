@@ -1,14 +1,12 @@
-import { useId, useReducer } from "react";
-import MemoEffect from "../effect/MemoEffect";
+/** @typedef {import('../context/local/index.ts').default} Context */
 import { getContext } from "../management/setting";
-import ReadableRef from "./local/ReadableRef";
 import * as local from "./local";
 import * as global from "./global";
-import WritableDerivedRef from "./local/WritableDerivedRef";
-import Ref from "./local/WritableRef";
-import { isProxy, isReactive } from "../reactive";
 import { mustBeReactiveComponent } from "../utils";
-import { isArray, isObject } from "@vue/shared";
+import { isArray, isFunction, isObject } from "@vue/shared";
+import { isRef } from "./utils";
+import WritableDerivedRef from "./local/WritableDerivedRef";
+import { isProxy } from "../reactive";
 import { warn } from "../reactive/warning";
 
 export const COMPUTED_SIDE_EFFECT_WARN =
@@ -80,47 +78,6 @@ export function useDeferredValue(source) {
   return scope.deferredValue.call(context, source);
 }
 
-export function isRef(s) {
-  return !!(s && s.__v_isRef === true);
-}
-
-export function unref(ref) {
-  return isRef(ref) ? ref.value : ref;
-}
-
-export function toRef(target, key, initialValue) {
-  if (isRef(target)) return target;
-  if (typeof target === "function")
-    return customRef(() => ({
-      get: target,
-    }));
-  if (isObject(target)) {
-    if (isRef(target[key])) return target[key];
-    return new WritableDerivedRef(target, key, initialValue);
-  }
-}
-
-export function toValue(source) {
-  return typeof source === "function" ? source() : unref(source);
-}
-
-export function toRefs(value) {
-  if (__DEV__ && !isProxy(value)) {
-    warn(`toRefs() expects a reactive object but received a plain one.`);
-  }
-  if (isArray(value)) return value.map((_, index) => toRef(value, index));
-  const keys = Object.keys(value);
-  const entries = keys.map((key) => [key, toRef(value, key)]);
-
-  return Object.fromEntries(entries);
-}
-
-export function triggerRef(ref) {
-  if (isRef(ref)) {
-    ref.trigger(undefined, true);
-  }
-}
-
 export function customRef(factory) {
   const context = getContext();
   let scope = local;
@@ -144,25 +101,50 @@ export function reactRef(initialValue) {
   return scope.reactRef.call(context, initialValue);
 }
 
+export function toRef(target, key, initialValue) {
+  if (isRef(target)) return target;
+  if (typeof target === 'function')
+    return customRef(() => ({
+      get: target,
+    }));
+  if (isObject(target)) {
+    if (isRef(target[key])) return target[key];
+    return new WritableDerivedRef(target, key, initialValue);
+  }
+}
+
+export function toRefs(value) {
+  if (__DEV__ && !isProxy(value)) {
+    warn(`toRefs() expects a reactive object but received a plain one.`);
+  }
+  if (isArray(value)) return value.map((_, index) => toRef(value, index));
+  const keys = Object.keys(value);
+  const entries = keys.map((key) => [key, toRef(value, key)]);
+
+  return Object.fromEntries(entries);
+}
+
 export function toReactiveHook(hook, options = {}) {
   return (...args) => {
     mustBeReactiveComponent();
     const value = hook(...args);
-    const currentManager = getContext();
 
-    const index = currentManager.addHookStore();
+    /** @type {Context} */
+    const currentContext = getContext();
 
-    if (typeof value === "object" && value !== null) {
-      const states = currentManager.trackStates(index, value);
-      const shallow = typeof options.shallow === "function" ? options.shallow(args) : options.shallow;
-      currentManager.registerHook({ id: options.id, hook, index, params: args, shallow });
+    const index = currentContext.addHookStore();
+
+    if (isObject(value)) {
+      const states = currentContext.trackStates(index, value);
+      const paths = isFunction(options.paths) ? options.paths(args) : options.paths;
+      const targets = currentContext.createTargets(paths);
+      currentContext.registerHook({ options: { paths, targets }, hook, index, params: args, shallow: false });
 
       return states;
     }
-    const state = currentManager.trackState(index, value);
-    
+    const state = currentContext.trackState(index, value);
 
-    currentManager.registerHook({ hook, index, params: args });
+    currentContext.registerHook({ hook, index, params: args });
     return state;
   };
 }
@@ -172,6 +154,7 @@ export function toReactiveHookShallow(hook) {
     mustBeReactiveComponent();
     const value = hook(...args);
 
+    /** @type {Context} */
     const context = getContext();
 
     const index = context.addHookStore();
@@ -181,3 +164,5 @@ export function toReactiveHookShallow(hook) {
     return state;
   };
 }
+
+export * from './utils';
