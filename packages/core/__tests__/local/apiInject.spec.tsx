@@ -1,15 +1,13 @@
 import { act, render } from "@testing-library/react";
-import { nextTick, $reactive } from "../../src";
+import { $reactive } from "../../src";
 import {
-  type InjectionKey,
   type Ref,
-  hasInjectionContext,
-  inject,
-  provide,
   reactive,
   readonly,
   ref,
 } from "../../src/index";
+import { inject, provide } from "../../src/ref";
+import { type InjectionKey } from "@vue/runtime-core";
 
 // reference: https://vue-composition-api-rfc.netlify.com/api.html#provide-inject
 describe("api: provide/inject", () => {

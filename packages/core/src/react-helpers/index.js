@@ -1,12 +1,10 @@
 import { useSyncExternalStore } from "react";
-import { isRef } from "../ref";
-import GlobalRef from "../ref/global/GlobalRef";
-import { isProxy } from "../reactive";
+import { isRef, isProxy } from "@vue/reactivity/index";
 import { SUBSCRIBE_KEY } from "../constants";
 
 export function useVueRef(initialValue) {
-  if (!isRef(initialValue) || !(initialValue instanceof GlobalRef)) {
-    throw new Error("useRef only accepts global Ref as initial value");
+  if (!isRef(initialValue)) {
+    throw new Error("useRef only accepts Ref as initial value");
   }
   const value = useSyncExternalStore(
     (listener) => initialValue.subscribe(listener),

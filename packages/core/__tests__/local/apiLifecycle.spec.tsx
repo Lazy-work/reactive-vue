@@ -5,21 +5,16 @@ import {
   onBeforeUnmount,
   onRenderTracked,
   onRenderTriggered,
-  $reactive,
-} from "../../src";
-import { onBeforeMount } from "../../src";
-import { act, render } from "@testing-library/react";
-import {
   onMounted,
   onBeforeUpdate,
   onUpdated,
   onUnmounted,
-  reactive,
-  ref,
+  $reactive,
 } from "../../src";
-import { nextTick } from "../../src";
-import { TriggerOpTypes } from "../../src/constants";
-import { ITERATE_KEY } from "../../src/reactive/reactiveEffect";
+import { onBeforeMount } from "../../src";
+import { act, render } from "@testing-library/react";
+
+import { ITERATE_KEY, reactive, ref, TriggerOpTypes, nextTick } from "../../src/index";
 // reference: https://vue-composition-api-rfc.netlify.com/api.html#lifecycle-hooks
 
 describe("api: lifecycle hooks", () => {

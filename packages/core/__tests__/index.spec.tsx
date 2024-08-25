@@ -120,17 +120,21 @@ describe("testing effects", () => {
     const booleanValue = toReactiveHook(useBooleanValue);
 
     let dummy;
+    const events = [];
     const VueComponent = $reactive(() => {
       const { value, mutate } = booleanValue();
 
       watchEffect(() => {
         dummy = value.value;
       });
-      return () => (
-        <button id="action" onClick={mutate}>
-          Action : {value.value}
-        </button>
-      );
+      return () => {
+        events.push('render');
+        return (
+          <button id="action" onClick={mutate}>
+            Action : {value.value}
+          </button>
+        );
+      };
     });
 
     const { container } = render(<VueComponent />);
@@ -142,6 +146,44 @@ describe("testing effects", () => {
     counter.click();
     await nextTick();
     expect(dummy).toBe(true);
+    expect(events).toEqual(['render', 'render']);
+  });
+
+  it("should update once", async () => {
+    function useBooleanValue() {
+      const [state, setState] = useState(false);
+
+      const mutate = useCallback(() => {
+        setState((value) => !value);
+      }, []);
+
+      return {};
+    }
+
+    const booleanValue = toReactiveHookShallow(useBooleanValue);
+
+    const events = [];
+    const VueComponent = $reactive(() => {
+      booleanValue();
+      const counter = ref(0);
+
+      return () => {
+        events.push('render');
+        return (
+          <button id="action" onClick={() => counter.value++}>
+            counter is {counter.value}
+          </button>
+        );
+      };
+    });
+
+    const { container } = render(<VueComponent />);
+
+    const counter = container.querySelector("#action") as HTMLButtonElement;
+
+    counter.click();
+    await nextTick();
+    expect(events).toEqual(['render', 'render']);
   });
   it.skip("should track react hook's dynamic result (on properties)", async () => {
     function useBooleanValue(params: { value: boolean } | (() => void)) {
@@ -192,6 +234,7 @@ describe("testing effects", () => {
     const value = toReactiveHookShallow(useValue);
 
     let dummy;
+    const events = [];
     const VueComponent = $reactive(() => {
       const result = value();
 
@@ -199,7 +242,10 @@ describe("testing effects", () => {
         dummy = result.value;
       });
 
-      return () => <button id="action">Action : {result.value.value}</button>;
+      return () => {
+        events.push('render');
+        return <button id="action">Action : {result.value.value}</button>;
+      };
     });
 
     act(() => {
@@ -211,5 +257,6 @@ describe("testing effects", () => {
     await new Promise((res) => setTimeout(res, 300));
 
     expect(dummy.value).toBe(2);
+    expect(events).toEqual(['render', 'render']);
   });
 });
