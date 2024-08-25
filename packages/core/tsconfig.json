@@ -16,6 +16,11 @@
     "esModuleInterop": true,
     "removeComments": false,
     "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@vue/reactivity/*": ["../../vue/packages/reactivity/src/*"],
+      "@vue/runtime-core/*": ["../../vue/packages/runtime-core/src/*"]
+    },
     "types": ["vitest/globals", "node"]
   },
   "include": ["global.d.ts", "./reactive-vue/src", "__tests__"],

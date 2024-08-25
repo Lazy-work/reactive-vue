@@ -1,4 +1,6 @@
 import { defineConfig } from 'vitest/config'
+import tsconfigPaths from 'vite-tsconfig-paths'
+import path from 'node:path'
 
 export default defineConfig({
   define: {
@@ -16,6 +18,13 @@ export default defineConfig({
     __FEATURE_PROD_DEVTOOLS__: false,
     __FEATURE_PROD_HYDRATION_MISMATCH_DETAILS__: false,
     __COMPAT__: true,
+  },
+  plugins: [tsconfigPaths()],
+  resolve: {
+    alias: {
+      "@vue/reactivity": path.resolve(__dirname, "../../vue/packages/reactivity/src"),
+      "@vue/runtime-core": path.resolve(__dirname, "../../vue/packages/runtime-core/src")
+    }
   },
   test: {
     globals: true,
