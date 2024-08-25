@@ -10,26 +10,19 @@ import Effect from '../../effect/Effect';
 import OnUpdatedLifecycle from '../../lifecycle/OnUpdatedLifecycle';
 import OnMountedLifecycle from '../../lifecycle/OnMountedLifecycle';
 import OnUnmountedLifecycle from '../../lifecycle/OnUnmountedLifecycle';
-import WatcherEffect from '../../effect/WatcherEffect';
-import MemoEffect from '../../effect/MemoEffect';
 import type {
   ReactHook,
-  WatchEffectOptions,
-  WatchOptions,
-  WatchSource,
 } from '../../types';
 import HookRef from '../../ref/local/HookRef';
 import HookCallableRef from '../../ref/local/HookCallableRef';
 import { mustBeReactiveComponent } from '../../utils';
-import ComputedRef from '../../ref/local/ComputedRef';
 import type IContext from '../IContext';
-import { RENDER_EFFECT } from '../../constants';
-import { queueFlush } from '../../lifecycle';
-import EffectScope, { getCurrentScope, setCurrentScope } from '../../effect/EffectScope';
-import { isArray, isFunction, isObject, isSymbol, NOOP } from '@vue/shared';
-import { DebuggerOptions } from '../..';
-import { warn } from '../../reactive/warning';
-
+import { invokeArrayFns, isArray, isFunction, isObject, isSymbol, NOOP } from '@vue/shared';
+import { SchedulerJob, SchedulerJobFlags, endFlush, pushRender, queueJob, unsetCurrentInstance } from '@vue/runtime-core/scheduler';
+import { EffectFlags, EffectScope, reactive, ReactiveEffect, unref } from '@vue/reactivity/index';
+import { warn } from '@vue/runtime-core/warning';
+import { ComponentInternalInstance } from '@vue/runtime-core/index';
+import { WatchEffectOptions } from '@vue/runtime-core/apiWatch';
 const nativeHooks = [
   React.useReducer,
   React.useEffect,
@@ -68,20 +61,31 @@ export enum LifecycleType {
   ON_UNMOUNTED,
 }
 let id = 0;
+
+function toggleRecurse(
+  { effect, job }: ComponentInternalInstance,
+  allowed: boolean,
+) {
+  if (allowed) {
+    effect.flags |= EffectFlags.ALLOW_RECURSE
+    job.flags! |= SchedulerJobFlags.ALLOW_RECURSE
+  } else {
+    effect.flags &= ~EffectFlags.ALLOW_RECURSE
+    job.flags! &= ~SchedulerJobFlags.ALLOW_RECURSE
+  }
+}
 class Context implements IContext {
   #id = id++;
   #parent?: IContext = getParentContext();
   #elements: WeakMap<any, any> = new WeakMap();
   #provider: Map<any, any> = new Map();
-  #tick: () => void = NOOP;
   #renderTrigger: () => void = __DEV__ ? () => {
     warn('Can\'t trigger a new rendering, the state is not setup properly');
   } : NOOP;
   #isRunning = false;
   #hooks: any[] = [];
   #propsKeys: string[] = [];
-  #propsValues: any[] = [];
-  #propsEffects: number[][] = [];
+  #idEffect = 0;
   #staticProps: boolean = false;
   #store: any[] = [];
   #storeCursor = 0;
@@ -93,20 +97,13 @@ class Context implements IContext {
   #disabledEffects: number[] = [];
   #savedDisabledEffects: number[] = [];
   #currentEffect?: AbstractEffect = undefined;
-  #scope: EffectScope = new EffectScope(this);
-
-  #idEffect = 1;
-  #preEffects: Effect[] = [];
-  #postEffects: Effect[] = [];
-  #syncEffects: Effect[] = [];
+  #effect: ReactiveEffect;
+  #scope: EffectScope = new EffectScope(true);
+  #props = reactive({});
   #onUpdatedEffects: OnUpdatedLifecycle[] = [];
   #onBeforeUpdateEffects: any[] = [];
   #layoutEffects: Effect[] = [];
   #insertionEffects: Effect[] = [];
-  #preWatcherEffects: WatcherEffect<any>[] = [];
-  #postWatcherEffects: WatcherEffect<any>[] = [];
-  #syncWatcherEffects: WatcherEffect<any>[] = [];
-  #memoizedEffects: MemoEffect<any>[] = [];
   #onBeforeMountEffects: OnMountedLifecycle[] = [];
   #onMountedEffects: OnMountedLifecycle[] = [];
   #unmountedEffects: OnUnmountedLifecycle[] = [];
@@ -115,10 +112,50 @@ class Context implements IContext {
   #executed = false;
   #nbExecution = 0;
   #mounted = false;
+  #template = null;
+  #endWork?: () => void ;
+  #update: any;
+  #job: any;
   #children: () => React.ReactNode = () => null;
 
   constructor() {
-    this.#scope.on();
+    // create reactive effect for rendering
+    this.#scope.on()
+    const effect = (this.#effect = new ReactiveEffect(() => {
+      this.generate()
+      this.triggerRendering()
+    }));
+    this.#scope.off()
+
+    this.#update = effect.run.bind(effect);
+    const job: SchedulerJob = (this.#job = effect.runIfDirty.bind(effect))
+    job.i = this
+    job.id = this.#id
+    effect.scheduler = () => queueJob(job)
+
+    // allowRecurse
+    // #1801, #2043 component render effects should allow recursive updates
+    toggleRecurse(this, true)
+
+    /* if (__DEV__) {
+      effect.onTrack = this.rtc
+        ? e => invokeArrayFns(this.rtc!, e)
+        : void 0
+      effect.onTrigger = this.rtg
+        ? e => invokeArrayFns(this.rtg!, e)
+        : void 0
+    } */
+  }
+
+  get effect() {
+    return this.#effect;
+  }
+  get job() {
+    return this.#job;
+  }
+
+  get isRunning() {
+    return this.#isRunning;
   }
 
   provide(key: any, value: any): void {
@@ -129,19 +166,19 @@ class Context implements IContext {
     this.#children = children;
   }
 
-  render() {
+  generate() {
     setParentContext(this);
     setContext(this);
-    const previousEffect = this.#currentEffect;
-    this.#currentEffect = { id: RENDER_EFFECT } as any;
-    const result = this.#children();
+    this.#template = this.#children();
     unsetContext();
-    this.#scope.off();
-    this.#currentEffect = previousEffect;
+  }
+
+  render() {
+    if (!this.#executed) this.#effect.run();
     this.#executed = true;
     this.#isRunning = false;
     this.#renderingScheduled = false;
-    return result;
+    return this.#template;
   }
 
   getParent() {
@@ -158,7 +195,6 @@ class Context implements IContext {
   init() {
     this.#nbExecution++;
     this.#isRunning = true;
-    if (!this.#executed) this.#tick = queueFlush();
   }
 
   processHooks() {
@@ -166,7 +202,7 @@ class Context implements IContext {
       for (const hook of this.#hooks) {
         const args =
           isFunction(hook.params) ? hook.params() : hook.params !== undefined ? hook.params : [];
-        const result = hook.hook(...args);
+        const result = hook.hook(...args.map(unref));
 
         if (hook.hook === useState) {
           // ignore
@@ -235,40 +271,27 @@ class Context implements IContext {
   }
 
   runEffects() {
-    this.computeEffects(this.#preEffects);
-    this.computeEffects(this.#preWatcherEffects);
-
     if (this.#executed) {
       for (const effect of this.#onBeforeUpdateEffects) effect()
     };
 
-    if (this.#postWatcherEffects.length || this.#postEffects.length || this.#onUpdatedEffects.length) {
+    useEffect(() => {
+      this.#endWork?.();
+    });
+
+    if (this.#onUpdatedEffects.length) {
       useEffect(() => {
         if (this.#nbExecution > 1) {
           for (const effect of this.#onUpdatedEffects) effect.run();
         }
-        this.computeEffects(this.#postWatcherEffects);
-        this.computeEffects(this.#postEffects);
       });
     }
 
     for (const effect of this.#onBeforeMountEffects) effect.run();
-    useEffect(() => {
-      // handle React strict mode, two time running
-      if (!this.#scope.active) {
-        for (let i = 0; i < this.#savedDisabledEffects.length; i++) {
-          this.#disabledEffects[i] = this.#savedDisabledEffects[i];
-        }
-        this.#disabledEffects.length = this.#savedDisabledEffects.length;
-        this.#scope.restart();
-      }
-      this.#mounted = true;
-      for (const effect of this.#onMountedEffects) effect.run();
-    }, []);
+    // TODO: handle React strict mode, two time running
+    
+    
 
-    useEffect(() => {
-      this.#tick();
-    });
 
     // on unmount effects
     useEffect(
@@ -277,12 +300,6 @@ class Context implements IContext {
           this.#savedDisabledEffects[i] = this.#disabledEffects[i];
         }
         this.#savedDisabledEffects.length = this.#disabledEffects.length;
-        this.computeCleanups(this.#preEffects);
-        this.computeCleanups(this.#postEffects);
-        this.computeCleanups(this.#syncEffects);
-        this.computeCleanups(this.#preWatcherEffects);
-        this.computeCleanups(this.#postWatcherEffects);
-        this.computeCleanups(this.#syncWatcherEffects);
         for (const effect of this.#unmountedEffects) {
           effect.run();
         }
@@ -308,7 +325,7 @@ class Context implements IContext {
     }
   }
 
-  computeCleanups(effects: Effect[] | WatcherEffect<any>[]) {
+  computeCleanups(effects: Effect[]) {
     for (const effect of effects) {
       effect.cleanup?.();
     }
@@ -351,105 +368,7 @@ class Context implements IContext {
     this.#pendingEffects = value;
   }
 
-  runSyncEffects() {
-    this.computeEffects(this.#memoizedEffects);
-    this.computeEffects(this.#syncEffects);
-    this.computeEffects(this.#syncWatcherEffects);
-  }
-
-
-  queueEffects(effects: Iterable<AbstractEffect>, force = false) {
-    for (const effect of effects) {
-      if (effect.id === RENDER_EFFECT) {
-        this.triggerRendering();
-        continue;
-      }
-      if (force && effect instanceof WatcherEffect) {
-        effect.force();
-      }
-      this.queueEffectId(effect.id);
-    }
-    this.runSyncEffects();
-  }
-
-  queueEffect(effect: AbstractEffect, force = false) {
-    if (effect.id === RENDER_EFFECT) {
-      this.triggerRendering();
-      return;
-    }
-    if (force && effect instanceof WatcherEffect) {
-      effect.force();
-    }
-    this.queueEffectId(effect.id);
-  }
-
-
-  queuePendingEffects(effectIds: number[], force = false) {
-    for (let i = 0; i < effectIds.length; i++) {
-      this.#pendingEffects[i] |= effectIds[i] & ~this.#disabledEffects[i];
-      if (this.#pendingEffects[i]) this.#pendingSum |= 1 << i;
-    }
-    if (effectIds[0] & 1) {
-      this.triggerRendering();
-      this.#pendingEffects[0] &= ~1;
-    }
-    if (force) {
-      for (const effect of this.#preWatcherEffects) {
-        const digit = 1 << (effect.id % 32);
-        const slot = Math.floor(effect.id / 32);
-        const isPending = digit & this.#pendingEffects[slot];
-        const isDisabled = this.#disabledEffects[slot] & digit;
-
-        if (isPending && !isDisabled) {
-          effect.force();
-        }
-      }
-
-      for (const effect of this.#postWatcherEffects) {
-        const digit = 1 << (effect.id % 32);
-        const slot = Math.floor(effect.id / 32);
-        const isPending = digit & this.#pendingEffects[slot];
-        const isDisabled = this.#disabledEffects[slot] & digit;
-
-        if (isPending && !isDisabled) {
-          effect.force();
-        }
-      }
-
-      for (const effect of this.#syncWatcherEffects) {
-        const digit = 1 << (effect.id % 32);
-        const slot = Math.floor(effect.id / 32);
-        const isPending = digit & this.#pendingEffects[slot];
-        const isDisabled = this.#disabledEffects[slot] & digit;
-
-        if (isPending && !isDisabled) {
-          effect.force();
-        }
-      }
-    }
-    this.runSyncEffects();
-  }
-
-  queueEffectId(effectId: number) {
-    if (effectId === RENDER_EFFECT) {
-      this.triggerRendering();
-      return;
-    }
-    const slot = Math.floor(effectId / 32);
-    const digit = 1 << (effectId % 32);
-
-    const isDisabled = this.#disabledEffects[slot] & digit;
-
-    if (isDisabled) return;
-    this.#pendingEffects[slot] |= digit;
-
-    if (this.#pendingEffects[slot]) this.#pendingSum |= 1 << slot;
-
-    this.runSyncEffects();
-  }
-
   disableEffect(effect: AbstractEffect) {
-    if (effect.id === RENDER_EFFECT) return;
     const effectId = effect.id;
     const slot = Math.floor(effectId / 32);
     const digit = 1 << (effectId % 32);
@@ -504,46 +423,6 @@ class Context implements IContext {
     return result;
   }
 
-  scopeTrack(scope: EffectScope, fn: any, parentScope?: EffectScope) {
-    setCurrentScope(scope);
-    setContext(this);
-
-    const result = fn();
-
-    if (this.#executed && !parentScope) undoContext();
-
-    setCurrentScope(parentScope);
-
-    return result;
-  }
-
-  createMemoEffect<T>(getterOrOptions: any, debuggerOptions: DebuggerOptions = {}): MemoEffect<T> {
-    mustBeReactiveComponent();
-    let getter;
-    let setter;
-    if (isFunction(getterOrOptions)) {
-      getter = getterOrOptions;
-    } else {
-      getter = getterOrOptions.get;
-      setter = getterOrOptions.set;
-    }
-    const storeIndex = this.getStoreNextIndex();
-    const memoEffect = new MemoEffect<T>(this.#idEffect, this, getter, storeIndex, undefined, debuggerOptions.onTrack, debuggerOptions.onTrigger);
-    const ref = new ComputedRef(this, storeIndex, memoEffect, setter);
-    memoEffect.ref = ref;
-    this.#memoizedEffects.push(memoEffect);
-
-    const currentScope = getCurrentScope();
-    if (currentScope) {
-      currentScope.addEffect(memoEffect);
-    }
-
-    this.#idEffect++;
-
-    memoEffect.run();
-    return memoEffect;
-  }
-
   createLifecycleHook(type: LifecycleType, callback: any) {
     mustBeReactiveComponent();
     let hook;
@@ -575,15 +454,6 @@ class Context implements IContext {
     mustBeReactiveComponent();
     const effect = new Effect(this.#idEffect, this, callback, options?.onTrack, options?.onTrigger);
     switch (type) {
-      case EffectType.PRE_EFFECT:
-        this.#preEffects.push(effect);
-        break;
-      case EffectType.POST_EFFECT:
-        this.#postEffects.push(effect);
-        break;
-      case EffectType.SYNC_EFFECT:
-        this.#syncEffects.push(effect);
-        break;
       case EffectType.INSERTION_EFFECT:
         this.#insertionEffects.push(effect);
         break;
@@ -592,47 +462,14 @@ class Context implements IContext {
         break;
     }
 
-    const currentScope = getCurrentScope();
-    if (currentScope) {
-      currentScope.addEffect(effect);
-    }
+    //TODO add to scope
 
-    this.queueEffect(effect);
+    // this.queueEffect(effect);
 
     this.#idEffect++;
     return effect;
   }
 
-  createWatcher<T>(type: WatcherType, callback: any, source: WatchSource<T>, options: WatchOptions): WatcherEffect<T> {
-    mustBeReactiveComponent();
-    const watcher = new WatcherEffect(this.#idEffect, this, callback, source, options);
-    switch (type) {
-      case WatcherType.PRE:
-        this.#preWatcherEffects.push(watcher);
-        break;
-      case WatcherType.POST:
-        this.#postWatcherEffects.push(watcher);
-        break;
-      case WatcherType.SYNC:
-        this.#syncWatcherEffects.push(watcher);
-        break;
-    }
-
-    const currentScope = getCurrentScope();
-    if (currentScope) {
-      currentScope.addEffect(watcher);
-    }
-
-    watcher.subscribeToDeps();
-    if (options?.immediate) this.queueEffect(watcher);
-
-    this.#idEffect++;
-    return watcher;
-  }
-
-  createEffectScope(detached?: boolean): EffectScope {
-    return new EffectScope(this, detached);
-  }
 
   setupState() {
     const [s, setState] = useState(true);
@@ -640,13 +477,15 @@ class Context implements IContext {
     this.#renderTrigger = () => {
       setState(!s);
       this.#renderingScheduled = true;
-      this.#tick = queueFlush();
     };
   }
 
   triggerRendering() {
     if (!this.#isRunning && !this.#renderingScheduled) {
       this.#renderTrigger();
+      pushRender(new Promise((resolve) => {
+        this.#endWork = resolve
+      }))
     }
   }
 
@@ -660,98 +499,21 @@ class Context implements IContext {
   }
 
   trackPropsDynamically<T extends Record<string, any>>(props: T) {
-    const currentPropsKeys = Object.keys(props);
-
-    for (const key of currentPropsKeys) {
-      if (this.#propsKeys.indexOf(key) === -1) this.#propsKeys.push(key);
+    for (const key of Object.keys(props)) {
+      this.#props[key] = props[key];
     }
-
-    const keys = this.#propsKeys;
-
-    for (let i = 0; i < keys.length; i++) {
-      if (this.#propsValues[i] !== props[keys[i]]) {
-        this.#propsValues[i] = props[keys[i]];
-        this.queuePendingEffects(this.#propsEffects[i] || []);
-      }
-    }
-
-    const context = this;
-
-    const proxy = new Proxy(
-      {},
-      {
-        get(_, key) {
-          if (isSymbol(key)) {
-            if (__DEV__) warn('Symbol as key are not allowed');
-            return;
-          }
-
-          const index = keys.indexOf(key as string);
-          if (index === -1) return undefined;
-          
-          if (context.currentEffect) {
-            if (context.#propsEffects[index] === undefined) context.#propsEffects[index] = [];
-            const effectId = context.currentEffect.id;
-            const slot = Math.floor(effectId / 32);
-            const digit = 1 << (effectId % 32);
-
-            context.#propsEffects[index][slot] |= digit;
-          }
-
-          return context.#propsValues[index];
-        },
-        set() {
-          if (__DEV__) warn("You can't mutate props");
-          return true;
-        },
-      },
-    );
-
-    return proxy;
+    
+    return this.#props;
   }
 
   trackPropsStatically<T extends Record<string, any>>(props: T) {
     const keys = this.#propsKeys;
 
-    for (let i = 0; i < keys.length; i++) {
-      if (this.#propsValues[i] !== props[keys[i]]) {
-        this.#propsValues[i] = props[keys[i]];
-        this.queuePendingEffects(this.#propsEffects[i] || []);
-      }
+    for (const key of keys) {
+      this.#props[key] = props[key];
     }
 
-    const context = this;
-
-    const proxy = new Proxy(
-      {},
-      {
-        get(_, key) {
-          if (isSymbol(key)) {
-            if (__DEV__) warn('Symbol as key are not allowed');
-            return undefined;
-          }
-
-          const index = keys.indexOf(key as string);
-          if (index === -1) return undefined;
-          if (context.currentEffect) {
-            if (context.#propsEffects[index] === undefined) context.#propsEffects[index] = [];
-            const effectId = context.currentEffect.id;
-            const slot = Math.floor(effectId / 32);
-            const digit = 1 << (effectId % 32);
-
-            context.#propsEffects[index][slot] |= digit;
-          }
-
-          return context.#propsValues[index];
-        },
-        set() {
-          if (__DEV__) warn("You can't mutate props");
-          return true;
-        },
-      },
-    );
-
-    return proxy;
+    return this.#props;
   }
 
   trackProps<T extends Record<string, any>>(props: T) {

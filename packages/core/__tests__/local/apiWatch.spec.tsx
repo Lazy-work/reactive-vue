@@ -7,7 +7,11 @@ import {
   ref,
   watch,
   watchEffect,
+  watchPostEffect,
+  watchSyncEffect,
   shallowReactive,
+  reactRef,
+  onMounted,
   shallowRef,
   toRef,
   triggerRef,
@@ -16,19 +20,17 @@ import {
   type DebuggerEvent,
   effectScope,
   $reactive,
-} from "../../src/index";
-import { TrackOpTypes, TriggerOpTypes } from "../../src/constants";
-import { ITERATE_KEY } from "../../src/reactive/reactiveEffect";
-import { act, render } from "@testing-library/react";
-import { watchPostEffect } from "../../src";
-import { watchSyncEffect } from "../../src";
-import { onMounted } from "../../src";
-import { reactRef } from "../../src";
+  TrackOpTypes,
+  ITERATE_KEY,
+  TriggerOpTypes,
+  onWatcherCleanup,
+} from '../../src/index';
+import { act, render } from '@testing-library/react';
 
 // reference: https://vue-composition-api-rfc.netlify.com/api.html#watch
 
-describe("api: watch", () => {
-  it("effect", async () => {
+describe('api: watch', () => {
+  it('effect', async () => {
     const state = reactive({ count: 0 });
     let dummy;
     watchEffect(() => {
@@ -37,10 +39,11 @@ describe("api: watch", () => {
     expect(dummy).toBe(0);
 
     state.count++;
+    await nextTick();
     expect(dummy).toBe(1);
   });
 
-  it("watching single source: getter", async () => {
+  it('watching single source: getter', async () => {
     const state = reactive({ count: 0 });
     let dummy;
     watch(
@@ -52,15 +55,14 @@ describe("api: watch", () => {
         if (prevCount) {
           prevCount + 1;
         }
-      }
+      },
     );
-
     state.count++;
-
+    await nextTick();
     expect(dummy).toMatchObject([1, 0]);
   });
 
-  it("watching single source: ref", async () => {
+  it('watching single source: ref', async () => {
     const count = ref(0);
     let dummy;
     watch(count, (count, prevCount) => {
@@ -71,38 +73,61 @@ describe("api: watch", () => {
         prevCount + 1;
       }
     });
-
     count.value++;
-
+    await nextTick();
     expect(dummy).toMatchObject([1, 0]);
   });
 
-  it("watching single source: array", async () => {
+  it('watching single source: array', async () => {
     const array = reactive([] as number[]);
     const spy = vi.fn();
     watch(array, spy);
     array.push(1);
-
+    await nextTick();
     expect(spy).toBeCalledTimes(1);
-    expect(spy).toBeCalledWith([1], [1],  expect.any(Function));
+    expect(spy).toBeCalledWith([1], [1], expect.anything());
   });
 
-  it("should not fire if watched getter result did not change", async () => {
+  it('should not call functions inside a reactive source array', () => {
+    const spy1 = vi.fn();
+    const array = reactive([spy1]);
+    const spy2 = vi.fn();
+    watch(array, spy2, { immediate: true });
+    expect(spy1).toBeCalledTimes(0);
+    expect(spy2).toBeCalledWith([spy1], undefined, expect.anything());
+  });
+
+  it('should not unwrap refs in a reactive source array', async () => {
+    const val = ref({ foo: 1 });
+    const array = reactive([val]);
+    const spy = vi.fn();
+    watch(array, spy, { immediate: true });
+    expect(spy).toBeCalledTimes(1);
+    expect(spy).toBeCalledWith([val], undefined, expect.anything());
+
+    // deep by default
+    val.value.foo++;
+    await nextTick();
+    expect(spy).toBeCalledTimes(2);
+    expect(spy).toBeCalledWith([val], [val], expect.anything());
+  });
+
+  it('should not fire if watched getter result did not change', async () => {
     const spy = vi.fn();
     const n = ref(0);
     watch(() => n.value % 2, spy);
 
     n.value++;
-
+    await nextTick();
     expect(spy).toBeCalledTimes(1);
 
     n.value += 2;
-
+    await nextTick();
     // should not be called again because getter result did not change
     expect(spy).toBeCalledTimes(1);
   });
 
-  it("watching single source: computed ref", async () => {
+  it('watching single source: computed ref', async () => {
     const count = ref(0);
     const plus = computed(() => count.value + 1);
     let dummy;
@@ -115,11 +140,11 @@ describe("api: watch", () => {
       }
     });
     count.value++;
-
+    await nextTick();
     expect(dummy).toMatchObject([2, 1]);
   });
 
-  it("watching primitive with deep: true", async () => {
+  it('watching primitive with deep: true', async () => {
     const count = ref(0);
     let dummy;
     watch(
@@ -129,14 +154,14 @@ describe("api: watch", () => {
       },
       {
         deep: true,
-      }
+      },
     );
     count.value++;
-
+    await nextTick();
     expect(dummy).toMatchObject([1, 0]);
   });
 
-  it("directly watching reactive object (with automatic deep: true)", async () => {
+  it('directly watching reactive object (with automatic deep: true)', async () => {
     const src = reactive({
       count: 0,
     });
@@ -145,11 +170,11 @@ describe("api: watch", () => {
       dummy = count;
     });
     src.count++;
-
+    await nextTick();
     expect(dummy).toBe(1);
   });
 
-  it("directly watching reactive object with explicit deep: false", async () => {
+  it('directly watching reactive object with explicit deep: false', async () => {
     const src = reactive({
       state: {
         count: 0,
@@ -163,25 +188,43 @@ describe("api: watch", () => {
       },
       {
         deep: false,
-      }
+      },
     );
 
     // nested should not trigger
     src.state.count++;
-
+    await nextTick();
     expect(dummy).toBe(undefined);
 
     // root level should trigger
     src.state = { count: 1 };
-
+    await nextTick();
     expect(dummy).toBe(1);
   });
 
+  it('directly watching reactive array with explicit deep: false', async () => {
+    const val = ref(1);
+    const array: any[] = reactive([val]);
+    const spy = vi.fn();
+    watch(array, spy, { immediate: true, deep: false });
+    expect(spy).toBeCalledTimes(1);
+    expect(spy).toBeCalledWith([val], undefined, expect.anything());
+
+    val.value++;
+    await nextTick();
+    expect(spy).toBeCalledTimes(1);
+
+    array[1] = 2;
+    await nextTick();
+    expect(spy).toBeCalledTimes(2);
+    expect(spy).toBeCalledWith([val, 2], [val, 2], expect.anything());
+  });
+
   // #9916
-  it("watching shallow reactive array with deep: false", async () => {
+  it('watching shallow reactive array with deep: false', async () => {
     class foo {
-      prop1: ShallowRef<string> = shallowRef("");
-      prop2: string = "";
+      prop1: ShallowRef<string> = shallowRef('');
+      prop2: string = '';
     }
 
     const obj1 = new foo();
@@ -191,18 +234,18 @@ describe("api: watch", () => {
     const cb = vi.fn();
     watch(collection, cb, { deep: false });
 
-    collection[0].prop1.value = "foo";
-
+    collection[0].prop1.value = 'foo';
+    await nextTick();
     // should not trigger
     expect(cb).toBeCalledTimes(0);
 
     collection.push(new foo());
-
+    await nextTick();
     // should trigger on array self mutation
     expect(cb).toBeCalledTimes(1);
   });
 
-  it("should still respect deep: true on shallowReactive source", async () => {
+  it('should still respect deep: true on shallowReactive source', async () => {
     const obj = reactive({ a: 1 });
     const arr = shallowReactive([obj]);
 
@@ -212,15 +255,15 @@ describe("api: watch", () => {
       () => {
         dummy = arr[0].a;
       },
-      { deep: true }
+      { deep: true },
     );
 
     obj.a++;
-
+    await nextTick();
     expect(dummy).toBe(2);
   });
 
-  it("watching multiple sources", async () => {
+  it('watching multiple sources', async () => {
     const state = reactive({ count: 1 });
     const count = ref(1);
     const plus = computed(() => count.value + 1);
@@ -235,14 +278,14 @@ describe("api: watch", () => {
 
     state.count++;
     count.value++;
-
+    await nextTick();
     expect(dummy).toMatchObject([
       [2, 2, 3],
       [1, 1, 2],
     ]);
   });
 
-  it("watching multiple sources: undefined initial values and immediate: true", async () => {
+  it('watching multiple sources: undefined initial values and immediate: true', async () => {
     const a = ref();
     const b = ref();
     let called = false;
@@ -253,12 +296,13 @@ describe("api: watch", () => {
         expect([newA, newB]).toMatchObject([undefined, undefined]);
         expect([oldA, oldB]).toMatchObject([undefined, undefined]);
       },
-      { immediate: true }
+      { immediate: true },
     );
+    await nextTick();
     expect(called).toBe(true);
   });
 
-  it("watching multiple sources: readonly array", async () => {
+  it('watching multiple sources: readonly array', async () => {
     const state = reactive({ count: 1 });
     const status = ref(false);
 
@@ -274,14 +318,14 @@ describe("api: watch", () => {
 
     state.count++;
     status.value = true;
-
+    await nextTick();
     expect(dummy).toMatchObject([
       [2, true],
       [1, false],
     ]);
   });
 
-  it("watching multiple sources: reactive object (with automatic deep: true)", async () => {
+  it('watching multiple sources: reactive object (with automatic deep: true)', async () => {
     const src = reactive({ count: 0 });
     let dummy;
     watch([src], ([state]) => {
@@ -289,24 +333,23 @@ describe("api: watch", () => {
       // assert types
       state.count === 1;
     });
-
     src.count++;
-
+    await nextTick();
     expect(dummy).toMatchObject({ count: 1 });
   });
 
-  it("warn invalid watch source", () => {
+  it('warn invalid watch source', () => {
     // @ts-expect-error
     watch(1, () => {});
     expect(`Invalid watch source`).toHaveBeenWarned();
   });
 
-  it("warn invalid watch source: multiple sources", () => {
+  it('warn invalid watch source: multiple sources', () => {
     watch([1], () => {});
     expect(`Invalid watch source`).toHaveBeenWarned();
   });
 
-  it("stopping the watcher (effect)", async () => {
+  it('stopping the watcher (effect)', async () => {
     const state = reactive({ count: 0 });
     let dummy;
     const stop = watchEffect(() => {
@@ -316,30 +359,33 @@ describe("api: watch", () => {
 
     stop();
     state.count++;
+    await nextTick();
     // should not update
     expect(dummy).toBe(0);
   });
 
-  it("stopping the watcher (with source)", async () => {
+  it('stopping the watcher (with source)', async () => {
     const state = reactive({ count: 0 });
     let dummy;
     const stop = watch(
       () => state.count,
       (count) => {
         dummy = count;
-      }
+      },
     );
 
     state.count++;
+    await nextTick();
     expect(dummy).toBe(1);
 
     stop();
     state.count++;
+    await nextTick();
     // should not update
     expect(dummy).toBe(1);
   });
 
-  it("cleanup registration (effect)", async () => {
+  it('cleanup registration (effect)', async () => {
     const state = reactive({ count: 0 });
     const cleanup = vi.fn();
     let dummy;
@@ -350,6 +396,7 @@ describe("api: watch", () => {
     expect(dummy).toBe(0);
 
     state.count++;
+    await nextTick();
     expect(cleanup).toHaveBeenCalledTimes(1);
     expect(dummy).toBe(1);
 
@@ -357,7 +404,7 @@ describe("api: watch", () => {
     expect(cleanup).toHaveBeenCalledTimes(2);
   });
 
-  it("cleanup registration (with source)", async () => {
+  it('cleanup registration (with source)', async () => {
     const count = ref(0);
     const cleanup = vi.fn();
     let dummy;
@@ -367,10 +414,12 @@ describe("api: watch", () => {
     });
 
     count.value++;
+    await nextTick();
     expect(cleanup).toHaveBeenCalledTimes(0);
     expect(dummy).toBe(1);
 
     count.value++;
+    await nextTick();
     expect(cleanup).toHaveBeenCalledTimes(1);
     expect(dummy).toBe(2);
 
@@ -378,7 +427,36 @@ describe("api: watch", () => {
     expect(cleanup).toHaveBeenCalledTimes(2);
   });
 
-  it("flush timing: pre (default)", async () => {
+  it('onWatcherCleanup', async () => {
+    const count = ref(0);
+    const cleanupEffect = vi.fn();
+    const cleanupWatch = vi.fn();
+
+    const stopEffect = watchEffect(() => {
+      onWatcherCleanup(cleanupEffect);
+      count.value;
+    });
+    const stopWatch = watch(count, () => {
+      onWatcherCleanup(cleanupWatch);
+    });
+
+    count.value++;
+    await nextTick();
+    expect(cleanupEffect).toHaveBeenCalledTimes(1);
+    expect(cleanupWatch).toHaveBeenCalledTimes(0);
+
+    count.value++;
+    await nextTick();
+    expect(cleanupEffect).toHaveBeenCalledTimes(2);
+    expect(cleanupWatch).toHaveBeenCalledTimes(1);
+
+    stopEffect();
+    expect(cleanupEffect).toHaveBeenCalledTimes(3);
+    stopWatch();
+    expect(cleanupWatch).toHaveBeenCalledTimes(2);
+  });
+
+  it('flush timing: pre (default)', async () => {
     const count = ref(0);
     const count2 = ref(0);
 
@@ -404,23 +482,23 @@ describe("api: watch", () => {
       return () => count.value;
     });
 
-    const root = document.createElement("div");
+    const root = document.createElement('div');
     render(<Comp />, { container: root });
     expect(assertion).toHaveBeenCalledTimes(1);
     expect(result1).toBe(true);
     expect(result2).toBe(true);
 
-    act(() => {
-      count.value++;
-      count2.value++;
-    });
+    count.value++;
+    count2.value++;
+    await nextTick();
+
     // two mutations should result in 1 callback execution
     expect(assertion).toHaveBeenCalledTimes(2);
     expect(result1).toBe(true);
     expect(result2).toBe(true);
   });
 
-  it("flush timing: post", async () => {
+  it('flush timing: post', async () => {
     const count = ref(0);
     let result;
     const assertion = vi.fn((count) => {
@@ -432,24 +510,26 @@ describe("api: watch", () => {
         () => {
           assertion(count.value);
         },
-        { flush: "post" }
+        { flush: 'post' },
       );
       return () => count.value;
     });
 
-    const root = document.createElement("div");
-    render(<Comp />, { container: root });
+    const root = document.createElement('div');
+    act(() => {
+      render(<Comp />, { container: root });
+    });
     expect(assertion).toHaveBeenCalledTimes(1);
     expect(result).toBe(true);
 
-    act(() => {
-      count.value++;
-    });
+    count.value++;
+    await nextTick();
+
     expect(assertion).toHaveBeenCalledTimes(2);
     expect(result).toBe(true);
   });
 
-  it("watchPostEffect", async () => {
+  it('watchPostEffect', async () => {
     const count = ref(0);
     let result;
     const assertion = vi.fn((count) => {
@@ -462,7 +542,7 @@ describe("api: watch", () => {
       });
       return () => count.value;
     });
-    const root = document.createElement("div");
+    const root = document.createElement('div');
 
     render(<Comp />, { container: root });
     expect(assertion).toHaveBeenCalledTimes(1);
@@ -475,7 +555,7 @@ describe("api: watch", () => {
     expect(result).toBe(true);
   });
 
-  it("flush timing: sync", async () => {
+  it('flush timing: sync', async () => {
     const count = ref(0);
     const count2 = ref(0);
 
@@ -487,8 +567,8 @@ describe("api: watch", () => {
       // on mount, the watcher callback should be called before DOM render
       // on update, should be called before the count is updated
       const expectedDOM = callCount === 1 ? `` : `${count - 1}`;
-      console.log("count", count);
-      console.log("innerHTML", root.innerHTML);
+      console.log('count', count);
+      console.log('innerHTML', root.innerHTML);
       result1 = root.innerHTML === expectedDOM;
 
       // in a sync callback, state mutation on the next line should not have
@@ -503,13 +583,13 @@ describe("api: watch", () => {
           assertion(count.value);
         },
         {
-          flush: "sync",
-        }
+          flush: 'sync',
+        },
       );
       return () => count.value;
     });
 
-    const root = document.createElement("div");
+    const root = document.createElement('div');
 
     render(<Comp />, { container: root });
     expect(assertion).toHaveBeenCalledTimes(1);
@@ -525,7 +605,7 @@ describe("api: watch", () => {
     expect(result2).toBe(true);
   });
 
-  it("watchSyncEffect", async () => {
+  it('watchSyncEffect', async () => {
     const count = ref(0);
     const count2 = ref(0);
 
@@ -551,7 +631,7 @@ describe("api: watch", () => {
       });
       return () => count.value;
     });
-    const root = document.createElement("div");
+    const root = document.createElement('div');
 
     render(<Comp />, { container: root });
     expect(assertion).toHaveBeenCalledTimes(1);
@@ -567,12 +647,12 @@ describe("api: watch", () => {
     expect(result2).toBe(true);
   });
 
-  it("should not fire on component unmount w/ flush: post", async () => {
+  it('should not fire on component unmount w/ flush: post', async () => {
     const toggle = ref(true);
     const cb = vi.fn();
 
     const Comp = $reactive(() => {
-      watch(toggle, cb, { flush: "post" });
+      watch(toggle, cb, { flush: 'post' });
       return () => null;
     });
 
@@ -589,12 +669,12 @@ describe("api: watch", () => {
   });
 
   // #2291
-  it("should not fire on component unmount w/ flush: pre", async () => {
+  it('should not fire on component unmount w/ flush: pre', async () => {
     const toggle = ref(true);
     const cb = vi.fn();
 
     const Comp = $reactive(() => {
-      watch(toggle, cb, { flush: "pre" });
+      watch(toggle, cb, { flush: 'pre' });
       return () => null;
     });
 
@@ -604,14 +684,13 @@ describe("api: watch", () => {
 
     render(<App />);
     expect(cb).not.toHaveBeenCalled();
-    act(() => {
-      toggle.value = false;
-    });
+    toggle.value = false;
+    await nextTick();
     expect(cb).not.toHaveBeenCalled();
   });
 
   // #7030
-  it("should not fire on child component unmount w/ flush: pre", async () => {
+  it('should not fire on child component unmount w/ flush: pre', async () => {
     const visible = ref(true);
     const cb = vi.fn();
 
@@ -620,7 +699,7 @@ describe("api: watch", () => {
     });
 
     const Comp = $reactive(() => {
-      watch(visible, cb, { flush: "pre" });
+      watch(visible, cb, { flush: 'pre' });
       return () => null;
     });
 
@@ -637,7 +716,7 @@ describe("api: watch", () => {
   });
 
   // #7030
-  it("flush: pre watcher in child component should not fire before parent update", async () => {
+  it('flush: pre watcher in child component should not fire before parent update', async () => {
     const b = ref(0);
     const calls: string[] = [];
 
@@ -645,13 +724,13 @@ describe("api: watch", () => {
       watch(
         () => b.value,
         (val) => {
-          calls.push("watcher child");
+          calls.push('watcher child');
         },
-        { flush: "pre" }
+        { flush: 'pre' },
       );
       return () => {
         b.value;
-        calls.push("render child");
+        calls.push('render child');
         return null;
       };
     });
@@ -660,13 +739,13 @@ describe("api: watch", () => {
       watch(
         () => b.value,
         (val) => {
-          calls.push("watcher parent");
+          calls.push('watcher parent');
         },
-        { flush: "pre" }
+        { flush: 'pre' },
       );
       return () => {
         b.value;
-        calls.push("render parent");
+        calls.push('render parent');
         return <Comp />;
       };
     });
@@ -676,23 +755,22 @@ describe("api: watch", () => {
     });
 
     render(<App />);
-    expect(calls).toEqual(["render parent", "render child"]);
+    expect(calls).toEqual(['render parent', 'render child']);
 
-    act(() => {
-      b.value++;
-    });
+    b.value++;
+    await nextTick();
     expect(calls).toEqual([
-      "render parent",
-      "render child",
-      "watcher parent",
-      "render parent",
-      "watcher child",
-      "render child",
+      'render parent',
+      'render child',
+      'watcher parent',
+      'render parent',
+      'watcher child',
+      'render child',
     ]);
   });
 
   // #1763
-  it("flush: pre watcher watching props should fire before child update", async () => {
+  it('flush: pre watcher watching props should fire before child update', async () => {
     const a = ref(0);
     const b = ref(0);
     const c = ref(0);
@@ -702,23 +780,23 @@ describe("api: watch", () => {
       watch(
         () => props.a + props.b,
         () => {
-          calls.push("watcher 1");
+          calls.push('watcher 1');
           c.value++;
         },
-        { flush: "pre" }
+        { flush: 'pre' },
       );
 
       // #1777 chained pre-watcher
       watch(
         c,
         () => {
-          calls.push("watcher 2");
+          calls.push('watcher 2');
         },
-        { flush: "pre" }
+        { flush: 'pre' },
       );
       return () => {
         c.value;
-        calls.push("render");
+        calls.push('render');
         return null;
       };
     });
@@ -728,7 +806,7 @@ describe("api: watch", () => {
     });
 
     render(<App />);
-    expect(calls).toEqual(["render"]);
+    expect(calls).toEqual(['render']);
 
     // both props are updated
     // should trigger pre-flush watcher first and only once
@@ -737,11 +815,11 @@ describe("api: watch", () => {
       a.value++;
       b.value++;
     });
-    expect(calls).toEqual(["render", "watcher 1", "watcher 2", "render"]);
+    expect(calls).toEqual(['render', 'watcher 1', 'watcher 2', 'render']);
   });
 
   // #5721
-  it("flush: pre triggered in component setup should be buffered and called before mounted", () => {
+  it('flush: pre triggered in component setup should be buffered and called before mounted', () => {
     const count = ref(0);
     const calls: string[] = [];
 
@@ -749,12 +827,12 @@ describe("api: watch", () => {
       watch(
         count,
         () => {
-          calls.push("watch " + count.value);
+          calls.push('watch ' + count.value);
         },
-        { flush: "pre" }
+        { flush: 'pre' },
       );
       onMounted(() => {
-        calls.push("mounted");
+        calls.push('mounted');
       });
       // mutate multiple times
       count.value++;
@@ -764,11 +842,11 @@ describe("api: watch", () => {
     });
 
     render(<App />);
-    expect(calls).toMatchObject(["watch 3", "mounted"]);
+    expect(calls).toMatchObject(['watch 3', 'mounted']);
   });
 
   // #1852
-  it("flush: post watcher should fire after template refs updated", async () => {
+  it('flush: post watcher should fire after template refs updated', async () => {
     const toggle = ref(false);
     let dom: HTMLElement | null = null;
 
@@ -780,7 +858,7 @@ describe("api: watch", () => {
         () => {
           dom = domRef.value;
         },
-        { flush: "post" }
+        { flush: 'post' },
       );
 
       return () => {
@@ -793,18 +871,18 @@ describe("api: watch", () => {
     act(() => {
       toggle.value = true;
     });
-    expect(dom!.tagName.toLowerCase()).toBe("p");
+    expect(dom!.tagName.toLowerCase()).toBe('p');
   });
 
-  it("deep", async () => {
+  it('deep', async () => {
     const state = reactive({
       nested: {
         count: ref(0),
       },
       array: [1, 2, 3],
       map: new Map([
-        ["a", 1],
-        ["b", 2],
+        ['a', 1],
+        ['b', 2],
       ]),
       set: new Set([1, 2, 3]),
     });
@@ -813,14 +891,9 @@ describe("api: watch", () => {
     watch(
       () => state,
       (state) => {
-        dummy = [
-          state.nested.count,
-          state.array[0],
-          state.map.get("a"),
-          state.set.has(1),
-        ];
+        dummy = [state.nested.count, state.array[0], state.map.get('a'), state.set.has(1)];
       },
-      { deep: true }
+      { deep: true },
     );
 
     state.nested.count++;
@@ -831,7 +904,7 @@ describe("api: watch", () => {
     expect(dummy).toEqual([1, 2, 1, true]);
 
     // nested map mutation
-    state.map.set("a", 2);
+    state.map.set('a', 2);
     expect(dummy).toEqual([1, 2, 2, true]);
 
     // nested set mutation
@@ -839,7 +912,7 @@ describe("api: watch", () => {
     expect(dummy).toEqual([1, 2, 2, false]);
   });
 
-  it("watching deep ref", async () => {
+  it('watching deep ref', async () => {
     const count = ref(0);
     const double = computed(() => count.value * 2);
     const state = reactive([count, double]);
@@ -850,14 +923,14 @@ describe("api: watch", () => {
       (state) => {
         dummy = [state[0].value, state[1].value];
       },
-      { deep: true }
+      { deep: true },
     );
 
     count.value++;
     expect(dummy).toEqual([1, 2]);
   });
 
-  it("immediate", async () => {
+  it('immediate', async () => {
     const count = ref(0);
     const cb = vi.fn();
     watch(count, cb, { immediate: true });
@@ -866,22 +939,18 @@ describe("api: watch", () => {
     expect(cb).toHaveBeenCalledTimes(2);
   });
 
-  it("immediate: triggers when initial value is null", async () => {
+  it('immediate: triggers when initial value is null', async () => {
     const state = ref(null);
     const spy = vi.fn();
     watch(() => state.value, spy, { immediate: true });
     expect(spy).toHaveBeenCalled();
   });
 
-  it("immediate: triggers when initial value is undefined", async () => {
+  it('immediate: triggers when initial value is undefined', async () => {
     const state = ref();
     const spy = vi.fn();
     watch(() => state.value, spy, { immediate: true });
-    expect(spy).toHaveBeenCalledWith(
-      undefined,
-      undefined,
-      expect.any(Function)
-    );
+    expect(spy).toHaveBeenCalledWith(undefined, undefined, expect.any(Function));
     state.value = 3;
     expect(spy).toHaveBeenCalledTimes(2);
     // testing if undefined can trigger the watcher
@@ -892,7 +961,7 @@ describe("api: watch", () => {
     expect(spy).toHaveBeenCalledTimes(3);
   });
 
-  it("warn immediate option when using effect", async () => {
+  it('warn immediate option when using effect', async () => {
     const count = ref(0);
     let dummy;
     watchEffect(
@@ -900,7 +969,7 @@ describe("api: watch", () => {
         dummy = count.value;
       },
       // @ts-expect-error
-      { immediate: false }
+      { immediate: false },
     );
     expect(dummy).toBe(0);
     expect(`"immediate" option is only respected`).toHaveBeenWarned();
@@ -909,7 +978,7 @@ describe("api: watch", () => {
     expect(dummy).toBe(1);
   });
 
-  it("warn and not respect deep option when using effect", async () => {
+  it('warn and not respect deep option when using effect', async () => {
     const arr = ref([1, [2]]);
     const spy = vi.fn();
     watchEffect(
@@ -918,7 +987,7 @@ describe("api: watch", () => {
         return arr;
       },
       // @ts-expect-error
-      { deep: true }
+      { deep: true },
     );
     expect(spy).toHaveBeenCalledTimes(1);
     (arr.value[1] as Array<number>)[0] = 3;
@@ -926,7 +995,7 @@ describe("api: watch", () => {
     expect(`"deep" option is only respected`).toHaveBeenWarned();
   });
 
-  it("onTrack", async () => {
+  it('onTrack', async () => {
     const events: DebuggerEvent[] = [];
     let dummy;
     const onTrack = vi.fn((e: DebuggerEvent) => {
@@ -935,22 +1004,22 @@ describe("api: watch", () => {
     const obj = reactive({ foo: 1, bar: 2 });
     watchEffect(
       () => {
-        dummy = [obj.foo, "bar" in obj, Object.keys(obj)];
+        dummy = [obj.foo, 'bar' in obj, Object.keys(obj)];
       },
-      { onTrack }
+      { onTrack },
     );
-    expect(dummy).toEqual([1, true, ["foo", "bar"]]);
+    expect(dummy).toEqual([1, true, ['foo', 'bar']]);
     expect(onTrack).toHaveBeenCalledTimes(3);
     expect(events).toMatchObject([
       {
         target: obj,
         type: TrackOpTypes.GET,
-        key: "foo",
+        key: 'foo',
       },
       {
         target: obj,
         type: TrackOpTypes.HAS,
-        key: "bar",
+        key: 'bar',
       },
       {
         target: obj,
@@ -960,7 +1029,7 @@ describe("api: watch", () => {
     ]);
   });
 
-  it("onTrigger", async () => {
+  it('onTrigger', async () => {
     const events: DebuggerEvent[] = [];
     let dummy;
     const onTrigger = vi.fn((e: DebuggerEvent) => {
@@ -971,7 +1040,7 @@ describe("api: watch", () => {
       () => {
         dummy = obj.foo;
       },
-      { onTrigger }
+      { onTrigger },
     );
     expect(dummy).toBe(1);
 
@@ -980,7 +1049,7 @@ describe("api: watch", () => {
     expect(onTrigger).toHaveBeenCalledTimes(1);
     expect(events[0]).toMatchObject({
       type: TriggerOpTypes.SET,
-      key: "foo",
+      key: 'foo',
       oldValue: 1,
       newValue: 2,
     });
@@ -990,12 +1059,12 @@ describe("api: watch", () => {
     expect(onTrigger).toHaveBeenCalledTimes(2);
     expect(events[1]).toMatchObject({
       type: TriggerOpTypes.DELETE,
-      key: "foo",
+      key: 'foo',
       oldValue: 2,
     });
   });
 
-  it("should work sync", () => {
+  it('should work sync', () => {
     const v = ref(1);
     let calls = 0;
 
@@ -1005,8 +1074,8 @@ describe("api: watch", () => {
         ++calls;
       },
       {
-        flush: "sync",
-      }
+        flush: 'sync',
+      },
     );
 
     expect(calls).toBe(0);
@@ -1014,7 +1083,7 @@ describe("api: watch", () => {
     expect(calls).toBe(1);
   });
 
-  test("should force trigger on triggerRef when watching a shallow ref", async () => {
+  test('should force trigger on triggerRef when watching a shallow ref', async () => {
     const v = shallowRef({ a: 1 });
     let sideEffect = 0;
     watch(v, (obj) => {
@@ -1034,7 +1103,7 @@ describe("api: watch", () => {
     expect(sideEffect).toBe(2);
   });
 
-  test("should force trigger on triggerRef when watching multiple sources: shallow ref array", async () => {
+  test('should force trigger on triggerRef when watching multiple sources: shallow ref array', async () => {
     const v = shallowRef([] as any);
     const spy = vi.fn();
     watch([v], () => {
@@ -1048,9 +1117,9 @@ describe("api: watch", () => {
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
-  test("should force trigger on triggerRef with toRef from reactive", async () => {
+  test('should force trigger on triggerRef with toRef from reactive', async () => {
     const foo = reactive({ bar: 1 });
-    const bar = toRef(foo, "bar");
+    const bar = toRef(foo, 'bar');
     const spy = vi.fn();
 
     watchEffect(() => {
@@ -1067,7 +1136,7 @@ describe("api: watch", () => {
   });
 
   // #2125
-  test("watchEffect should not recursively trigger itself", async () => {
+  test('watchEffect should not recursively trigger itself', async () => {
     const spy = vi.fn();
     const price = ref(10);
     const history = ref<number[]>([]);
@@ -1079,7 +1148,7 @@ describe("api: watch", () => {
   });
 
   // #2231
-  test("computed refs should not trigger watch if value has no change", async () => {
+  test('computed refs should not trigger watch if value has no change', async () => {
     const spy = vi.fn();
     const source = ref(0);
     const price = computed(() => source.value === 0);
@@ -1090,12 +1159,12 @@ describe("api: watch", () => {
   });
 
   // https://github.com/vuejs/core/issues/2381
-  test("$watch should always register its effects with its own instance", async () => {
+  test('$watch should always register its effects with its own instance', async () => {
     let instance: ComponentInternalInstance | null;
     let _show: Ref<boolean>;
 
     const Child = defineComponent({
-      render: () => h("div"),
+      render: () => h('div'),
       mounted() {
         instance = getCurrentInstance();
       },
@@ -1121,7 +1190,7 @@ describe("api: watch", () => {
         // the effect for this `$watch` should nonetheless be registered with Child
         this.comp!.$watch(
           () => this.show,
-          () => void 0
+          () => void 0,
         );
       },
     });
@@ -1141,7 +1210,7 @@ describe("api: watch", () => {
     expect(instance!.scope.effects[0].active).toBe(false);
   });
 
-  test("this.$watch should pass `this.proxy` to watch source as the first argument ", () => {
+  test('this.$watch should pass `this.proxy` to watch source as the first argument ', () => {
     let instance: any;
     const source = vi.fn();
 
@@ -1153,14 +1222,14 @@ describe("api: watch", () => {
       },
     });
 
-    const root = document.createElement("div");
+    const root = document.createElement('div');
     createApp(Comp).mount(root);
 
     expect(instance).toBeDefined();
     expect(source.mock.calls.some((args) => args.includes(instance)));
   });
 
-  test("should not leak `this.proxy` to setup()", () => {
+  test('should not leak `this.proxy` to setup()', () => {
     const source = vi.fn();
 
     const Comp = defineComponent({
@@ -1170,20 +1239,20 @@ describe("api: watch", () => {
       },
     });
 
-    const root = document.createElement("div");
+    const root = document.createElement('div');
     createApp(Comp).mount(root);
     // should not have any arguments
     expect(source.mock.calls[0]).toMatchObject([]);
   });
 
   // #2728
-  test("pre watcher callbacks should not track dependencies", async () => {
+  test('pre watcher callbacks should not track dependencies', async () => {
     const a = ref(0);
     const b = ref(0);
     const updated = vi.fn();
 
     const Child = defineComponent({
-      props: ["a"],
+      props: ['a'],
       updated,
       watch: {
         a() {
@@ -1191,7 +1260,7 @@ describe("api: watch", () => {
         },
       },
       render() {
-        return h("div", this.a);
+        return h('div', this.a);
       },
     });
 
@@ -1201,7 +1270,7 @@ describe("api: watch", () => {
       },
     });
 
-    const root = document.createElement("div");
+    const root = document.createElement('div');
     createApp(Parent).mount(root);
 
     a.value++;
@@ -1214,7 +1283,7 @@ describe("api: watch", () => {
     expect(updated).toHaveBeenCalledTimes(1);
   });
 
-  test.skip("watching keypath", async () => {
+  test.skip('watching keypath', async () => {
     const spy = vi.fn();
     const Comp = defineComponent({
       render() {},
@@ -1226,24 +1295,24 @@ describe("api: watch", () => {
         };
       },
       watch: {
-        "a.b": spy,
+        'a.b': spy,
       },
       created(this: any) {
-        this.$watch("a.b", spy);
+        this.$watch('a.b', spy);
       },
       mounted(this: any) {
         this.a.b++;
       },
     });
 
-    const root = document.createElement("div");
+    const root = document.createElement('div');
     createApp(Comp).mount(root);
 
     await nextTick();
     expect(spy).toHaveBeenCalledTimes(2);
   });
 
-  it("watching sources: ref<any[]>", async () => {
+  it('watching sources: ref<any[]>', async () => {
     const foo = ref([1]);
     const spy = vi.fn();
     watch(foo, () => {
@@ -1254,21 +1323,21 @@ describe("api: watch", () => {
     expect(spy).toBeCalledTimes(1);
   });
 
-  it("watching multiple sources: computed", async () => {
+  it('watching multiple sources: computed', async () => {
     let count = 0;
-    const value = ref("1");
+    const value = ref('1');
     const plus = computed(() => !!value.value);
     watch([plus], () => {
       count++;
     });
-    value.value = "2";
+    value.value = '2';
     await nextTick();
     expect(plus.value).toBe(true);
     expect(count).toBe(0);
   });
 
   // #4158
-  test("watch should not register in owner component if created inside detached scope", () => {
+  test('watch should not register in owner component if created inside detached scope', () => {
     let instance: ComponentInternalInstance;
     const Comp = {
       setup() {
@@ -1276,20 +1345,20 @@ describe("api: watch", () => {
         effectScope(true).run(() => {
           watch(
             () => 1,
-            () => {}
+            () => {},
           );
         });
-        return () => "";
+        return () => '';
       },
     };
-    const root = document.createElement("div");
+    const root = document.createElement('div');
     createApp(Comp).mount(root);
     // should not record watcher in detached scope and only the instance's
     // own update effect
     expect(instance!.scope.effects.length).toBe(1);
   });
 
-  test("watchEffect should keep running if created in a detached scope", async () => {
+  test('watchEffect should keep running if created in a detached scope', async () => {
     const trigger = ref(0);
     let countWE = 0;
     let countW = 0;
@@ -1302,10 +1371,10 @@ describe("api: watch", () => {
           });
           watch(trigger, () => countW++);
         });
-        return () => "";
+        return () => '';
       },
     };
-    const root = document.createElement("div");
+    const root = document.createElement('div');
 
     render(<Comp />, { container: root });
     // only watchEffect as ran so far
@@ -1326,25 +1395,25 @@ describe("api: watch", () => {
   });
 
   const options = [
-    { name: "only trigger once watch" },
+    { name: 'only trigger once watch' },
     {
       deep: true,
-      name: "only trigger once watch with deep",
+      name: 'only trigger once watch with deep',
     },
     {
-      flush: "sync",
-      name: "only trigger once watch with flush: sync",
+      flush: 'sync',
+      name: 'only trigger once watch with flush: sync',
     },
     {
-      flush: "pre",
-      name: "only trigger once watch with flush: pre",
+      flush: 'pre',
+      name: 'only trigger once watch with flush: pre',
     },
     {
       immediate: true,
-      name: "only trigger once watch with immediate",
+      name: 'only trigger once watch with immediate',
     },
   ] as const;
-  test.each(options)("$name", (option) => {
+  test.each(options)('$name', (option) => {
     const count = ref(0);
     const cb = vi.fn();
 
@@ -1362,7 +1431,7 @@ describe("api: watch", () => {
   });
 
   // #5151
-  test("OnCleanup also needs to be cleaned，", () => {
+  test('OnCleanup also needs to be cleaned，', () => {
     const spy1 = vi.fn();
     const spy2 = vi.fn();
     const num = ref(0);
@@ -1408,7 +1477,7 @@ describe("api: watch", () => {
         return () => null;
       },
     };
-    const root = document.createElement("div");
+    const root = document.createElement('div');
     createApp(Comp).mount(root);
     expect(instance!.scope.effects.length).toBe(2);
     unwatch!();
