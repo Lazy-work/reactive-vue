@@ -1,28 +1,23 @@
 import ExtensibleFunction from './ref/local/ExtensibleFunction';
-import type IContext from './context/IContext';
-
 class ReactRef<T> extends ExtensibleFunction<[T], void> {
-  #context: IContext;
-  #index: number;
+  #value: { current: T };
 
-  constructor(context: IContext, index: number) {
+  constructor() {
     super();
-    this.#context = context;
-    this.#index = index;
   }
 
   get value(): T {
-    const ref = this.#context.getValueAt(this.#index);
+    const ref = this.#value;
     return ref.current;
   }
 
   set value(newValue: T) {
-    const ref = this.#context.getValueAt(this.#index);
+    const ref = this.#value;
     ref.current = newValue;
   }
 
   __call__(value: T): void {
-    const ref = this.#context.getValueAt(this.#index);
+    const ref = this.#value;
     ref.current = value;
   }
 }
