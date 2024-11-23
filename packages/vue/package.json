@@ -1,0 +1,54 @@
+{
+  "name": "@bridge/vue",
+  "version": "0.2.2",
+  "packageManager": "pnpm@8.15.3",
+  "type": "module",
+  "main": "./dist/bridge-vue.cjs.js",
+  "module": "./dist/bridge-vue.esm-bundler.js",
+  "types": "./dist/types.d.ts",
+  "typings": "./dist/types.d.ts",
+  "scripts": {
+    "test": "vitest --",
+    "build": "rimraf dist && rollup -c && api-extractor run --local",
+    "release": "release-it"
+  },
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/types.d.ts",
+        "default": "./dist/bridge-vue.esm-bundler.js"
+      },
+      "require": {
+        "types": "./dist/types.d.ts",
+        "default": "./dist/bridge-vue.cjs.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "types",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "release-it": {
+    "git": false,
+    "plugins": {
+      "release-it-pnpm": {}
+    }
+  },
+  "devDependencies": {
+    "@rollup/plugin-alias": "^5.1.1",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-replace": "^5.0.5",
+    "@types/react": "^18.3.12",
+    "api-extractor": "^99.99.99",
+    "rimraf": "^5.0.5",
+    "rollup": "^4.17.2",
+    "rollup-plugin-dts": "^6.1.1",
+    "rollup-plugin-esbuild": "^6.1.1"
+  }
+}
