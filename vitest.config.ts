@@ -1,5 +1,5 @@
+import { entries } from './scripts/aliases.js'
 import { defineConfig } from 'vitest/config'
-import tsconfigPaths from 'vite-tsconfig-paths'
 import path from 'node:path'
 
 export default defineConfig({
@@ -19,11 +19,13 @@ export default defineConfig({
     __FEATURE_PROD_HYDRATION_MISMATCH_DETAILS__: false,
     __COMPAT__: true,
   },
-  plugins: [tsconfigPaths()],
   resolve: {
     alias: {
-      "@vue/reactivity": path.resolve(__dirname, "../../vue/packages/reactivity/src"),
-      "@vue/runtime-core": path.resolve(__dirname, "../../vue/packages/runtime-core/src")
+      "@vue-internals/shared": path.resolve(__dirname, "./vue/packages/shared/src"),
+      "@vue-internals/reactivity": path.resolve(__dirname, "./vue/packages/reactivity/src"),
+      "@vue-internals/runtime-core": path.resolve(__dirname, "./vue/packages/runtime-core/src"),
+      "@bridge/core": path.resolve(__dirname, "./packages/core/src/index.ts"),
+      ...entries
     }
   },
   test: {
