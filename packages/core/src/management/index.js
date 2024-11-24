@@ -1,51 +1,82 @@
-import React, { useEffect, useMemo } from "react";
-import Context from "../context/local";
-import { isReactComponent } from "../utils";
-import { getContext, setContext, undoContext, unsetContext } from "./setting";
+/** @import {BridgePluginClass, GetOptionsType} from '../plugins' */
+import React, { useEffect, useMemo } from 'react';
+import Context from '../context';
+import { isReactComponent } from '../utils';
+import { getCurrentInstance, setCurrentInstance } from '@vue-internals/runtime-core/component';
 
-function createContext() {
-  return new Context();
+const pluginsList = new Set();
+
+/**
+ * @template {BridgePluginClass<any>} T
+ * @template {object} O
+ * 
+ * @param {T} pluginClass
+ * @param {O} [options]
+ */
+export function usePlugin(pluginClass, options) {
+  pluginClass.options = options;
+  pluginsList.add(pluginClass);
 }
 
-export function createHook(reactiveHook) {
+function initInstance() {
+  const instance = new Context();
+  for (const Plugin of pluginsList) {
+    const plugin = new Plugin();
+    instance.setPlugin(Plugin, plugin);
+    plugin.onInstanceCreated(instance);
+  }
+  return instance;
+}
+const deps = [];
+
+/** @typedef {(...args: any[]) => any} AnyFunction */
+
+/**
+ * @template {AnyFunction} T
+ * @param {T} bridgeHook 
+ * @returns {(...args: Parameters<T>) => ReturnType<T>}
+ */
+export function createReactHook(bridgeHook) {
   return (...args) => {
-    if (isReactComponent() && getContext() === __v_globalContext) {
-      const context = useMemo(() => createContext(), []);
-      context.init();
-      context.setupState();
-      if (!context.isExecuted()) {
-        setContext(context);
-        context.children = reactiveHook(...args);
-        unsetContext();
+    if (isReactComponent() && !getCurrentInstance()) {
+      const instance = useMemo(initInstance, deps);
+      const unset = setCurrentInstance(instance);
+      instance.init();
+      instance.setupState();
+
+      if (!instance.isExecuted()) {
+        instance.children = bridgeHook(...args);
       }
 
-      context.processHooks();
-      context.runEffects();
-      context.executed();
-
-      return context.children;
+      instance.runEffects();
+      useEffect(unset);
+      instance.executed();
+      return instance.children;
     } else {
-      return reactiveHook(...args);
+      return bridgeHook(...args);
     }
   };
 }
 
-export function $reactive(fn) {
+/**
+ * @template {object} T
+ * @param {(props: T) => () => React.ReactNode} fn 
+ * @returns {(props: T) => React.ReactNode}
+ */
+export function $bridge(fn) {
   return (props) => {
-    const context = useMemo(() => createContext(), []);
-    context.init();
-    context.setupState();
-    const trackedProps = context.trackProps(props);
+    const instance = useMemo(initInstance, deps);
+    const unset = setCurrentInstance(instance);
+    instance.init();
+    instance.setupState();
+    const trackedProps = instance.trackProps(props);
 
-    if (!context.isExecuted()) {
-      setContext(context);
-      context.children = fn(trackedProps);
-      unsetContext();
+    if (!instance.isExecuted()) {
+      instance.children = fn(trackedProps);
     }
 
-    context.processHooks();
-    context.runEffects();
-
-    return context.render();
+    instance.runEffects();
+    useEffect(unset);
+    return instance.render();
   };
 }
