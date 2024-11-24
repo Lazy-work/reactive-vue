@@ -1,7 +1,7 @@
 {
   "version": "0.0.0",
   "type": "module",
-  "packageManager": "pnpm@8.15.3",
+  "packageManager": "pnpm@9.10.0",
   "workspaces": [
     "packages/core",
     "packages/jsx-runtime",
@@ -9,16 +9,23 @@
   ],
   "scripts": {
     "build-all": "pnpm -r build",
-    "release": "npm run release --workspaces && release-it"
+    "release": "npm run release --workspaces && release-it",
+    "preinstall": "npx only-allow pnpm"
   },
   "peerDependencies": {
     "react": "^18.0.0"
   },
   "namespace": "@lazywork",
   "devDependencies": {
+    "@eslint/js": "^9.7.0",
     "@release-it/bumper": "^6.0.1",
     "@release-it/conventional-changelog": "^8.0.1",
+    "@testing-library/react": "^16.0.1",
+    "@types/node": "^22.9.0",
+    "prettier": "^3.2.5",
     "release-it": "^17.3.0",
-    "release-it-pnpm": "^4.6.1"
+    "release-it-pnpm": "^4.6.1",
+    "typescript": "^5.6.3",
+    "vitest": "^1.5.2"
   }
 }
