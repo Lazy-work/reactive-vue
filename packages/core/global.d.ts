@@ -1,7 +1,3 @@
-import GlobalContext from "./src/context/global"
-
-
-
 // for tests
 declare namespace jest {
   interface Matchers<R, T> {
@@ -12,7 +8,6 @@ declare namespace jest {
 }
 
 declare global {
-  var __v_globalContext: GlobalContext
   // Global compile-time constants
   var __DEV__: boolean
   var __TEST__: boolean
@@ -34,7 +29,6 @@ declare global {
 }
 
 declare namespace React {
-
   export const __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED: {
     ReactCurrentOwner: {
       current: any
