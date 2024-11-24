@@ -1,5 +1,4 @@
 import type { MockInstance } from 'vitest'
-import { getGlobalContext } from '../src/management/setting'
 
 vi.stubGlobal('MathMLElement', class MathMLElement {})
 
@@ -75,7 +74,6 @@ beforeEach(async () => {
   asserted.clear()
   warn = vi.spyOn(console, 'warn')
   warn.mockImplementation(() => {})
-  await import('../src/context/global')
 })
 
 afterEach(() => {
