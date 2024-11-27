@@ -76,6 +76,23 @@ beforeEach(async () => {
   warn.mockImplementation(() => {})
 })
 
+// hack until we can upgrade to react@16.9.0
+const originalError = console.error
+beforeAll(() => {
+  // this is here to silence a warning temporarily
+  // we'll fix it in the next exercise
+  vi.spyOn(console, 'error').mockImplementation((...args) => {
+    if (typeof args[0] === 'string' && args[0].includes('Warning: An update to %s inside a test was not wrapped in act')) {
+      return
+    }
+    return originalError.call(console, args)
+  })
+})
+
+afterAll(() => {
+  console.error.mockRestore()
+})
+
 afterEach(() => {
   const assertedArray = Array.from(asserted)
   const nonAssertedWarnings = warn.mock.calls
