@@ -1,0 +1,1 @@
+export type Action = 'body' | 'effect (pre)' | 'effect (post)' | 'hook' | 'render';
