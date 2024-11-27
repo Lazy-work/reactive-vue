@@ -1,8 +1,8 @@
 import { useSyncExternalStore } from "react";
-import { isRef, isProxy } from "@vue-internals/reactivity/index";
-import { SUBSCRIBE_KEY } from "../../core/src/constants";
+import { isRef, isProxy, type Ref } from "@vue-internals/reactivity/index";
+import { SUBSCRIBE_KEY } from "./constants";
 
-export function useVueRef(initialValue) {
+export function useVueRef<T>(initialValue: Ref<T>) {
   if (!isRef(initialValue)) {
     throw new Error("useRef only accepts Ref as initial value");
   }
@@ -10,7 +10,7 @@ export function useVueRef(initialValue) {
     (listener) => initialValue.subscribe(listener),
     () => initialValue.value
   );
-  const setter = (newValue) =>
+  const setter = (newValue: T) =>
     typeof newValue === "function"
       ? (initialValue.value = newValue(initialValue.value))
       : (initialValue.value = newValue);
@@ -18,7 +18,7 @@ export function useVueRef(initialValue) {
   return [value, setter];
 }
 
-export function useReactive(initialValue, keys) {
+export function useReactive<T extends object>(initialValue: T, keys: (keyof T)[]) {
   if (!isProxy(initialValue)) {
     throw new Error(
       "useReactive only accepts reactive object as initial value"
