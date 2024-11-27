@@ -12,3 +12,5 @@ export function $switch<T>(input: T) {
 export function v<T>(value: T) {
     return { value };
 }
+
+export type { LogicalEvaluation, MatchingEvaluation };

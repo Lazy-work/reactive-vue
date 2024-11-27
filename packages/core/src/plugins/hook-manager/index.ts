@@ -32,7 +32,7 @@ interface HookManagerOptions<T extends BaseSignalConstructor<any>> {
   unsignal: (signal: any) => any;
 }
 
-export class HookManager<T extends BaseSignalConstructor<any>> implements BridgePlugin {
+export class HookManager implements BridgePlugin {
   #store: any[] = [];
   #storeCursor = 0;
   #hooks: any[] = [];
@@ -40,7 +40,7 @@ export class HookManager<T extends BaseSignalConstructor<any>> implements Bridge
   #hookValues: any[][] = [];
   #hookSignals: (BaseSignal<any> | HookCallableSignal<any, any>)[][] = [];
   #hookEffect = new ReactiveEffect(NOOP);
-  #signalClass: T;
+  #signalClass: BaseSignalConstructor<any>;
   #unsignal: (signal: any) => any;
   #i = 0;
   static options: HookManagerOptions<any>;

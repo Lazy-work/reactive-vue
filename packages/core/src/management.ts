@@ -1,19 +1,18 @@
-/** @import {BridgePluginClass, GetOptionsType} from '../plugins' */
 import React, { useEffect, useMemo } from 'react';
-import Context from '../context';
-import { isReactComponent } from '../utils';
-import { getCurrentInstance, setCurrentInstance } from '@vue-internals/runtime-core/component';
+import Context from './context';
+import { isReactComponent } from './utils';
+import { getCurrentInstance, setCurrentInstance } from './index';
+import type { BridgePluginClass } from './plugins';
+import type { ShallowReactive } from '@vue-internals/reactivity/index';
 
-const pluginsList = new Set();
+const pluginsList = new Set<BridgePluginClass>();
 
 /**
- * @template {BridgePluginClass<any>} T
- * @template {object} O
  * 
- * @param {T} pluginClass
- * @param {O} [options]
+ * @param pluginClass 
+ * @param options
  */
-export function usePlugin(pluginClass, options) {
+export function usePlugin<T extends BridgePluginClass, O extends object>(pluginClass: T, options?: O) {
   pluginClass.options = options;
   pluginsList.add(pluginClass);
 }
@@ -21,23 +20,17 @@ export function usePlugin(pluginClass, options) {
 function initInstance() {
   const instance = new Context();
   for (const Plugin of pluginsList) {
-    const plugin = new Plugin();
+    const plugin = new (Plugin as any)();
     instance.setPlugin(Plugin, plugin);
     plugin.onInstanceCreated(instance);
   }
   return instance;
 }
-const deps = [];
+const deps = [] as const;
 
-/** @typedef {(...args: any[]) => any} AnyFunction */
-
-/**
- * @template {AnyFunction} T
- * @param {T} bridgeHook 
- * @returns {(...args: Parameters<T>) => ReturnType<T>}
- */
-export function createReactHook(bridgeHook) {
-  return (...args) => {
+type AnyFunction = (...args: any[]) => any
+export function createReactHook<T extends AnyFunction>(bridgeHook: T) {
+  return (...args: Parameters<T>) => {
     if (isReactComponent() && !getCurrentInstance()) {
       const instance = useMemo(initInstance, deps);
       const unset = setCurrentInstance(instance);
@@ -58,13 +51,13 @@ export function createReactHook(bridgeHook) {
   };
 }
 
+export type SetupComponent<T extends Record<string, any>> = (props: ShallowReactive<T>) => () => React.ReactNode;
+
 /**
- * @template {object} T
- * @param {(props: T) => () => React.ReactNode} fn 
- * @returns {(props: T) => React.ReactNode}
+ * @param fn - bridge component setup
  */
-export function $bridge(fn) {
-  return (props) => {
+export function $bridge<T extends Record<string, any>>(fn: SetupComponent<T>) {
+  return (props: T) => {
     const instance = useMemo(initInstance, deps);
     const unset = setCurrentInstance(instance);
     instance.init();
