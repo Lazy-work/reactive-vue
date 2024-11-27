@@ -3,7 +3,7 @@ import { InjectionPlugin } from './apiInject';
 
 export {
   $bridge,
-  createHook,
+  createReactHook,
   $if,
   $switch,
   v,
