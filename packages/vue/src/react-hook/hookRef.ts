@@ -3,17 +3,39 @@ import { Dep } from '@vue-internals/reactivity/dep';
 import { HookManager } from '@bridge/core';
 
 class HookRef<T = any> {
-  #manager: HookManager<any>
+  /**
+   * @internal
+   */
+  #manager: HookManager
+  /**
+   * @internal
+   */
   #hookIndex: number;
+  /**
+   * @internal
+   */
   #valueIndex: number;
 
+  /**
+   * @internal
+   */
   dep: Dep = new Dep();
 
+
+  /**
+   * @internal
+   */
   public readonly [ReactiveFlags.IS_REF] = true;
+  /**
+   * @internal
+   */
   public readonly [ReactiveFlags.IS_SHALLOW]: boolean = false;
+  /**
+   * @internal
+   */
   public readonly [ReactiveFlags.IS_READONLY]: boolean = true;
 
-  constructor(manager: HookManager<any>, hookIndex: number, valueIndex: number) {
+  constructor(manager: HookManager, hookIndex: number, valueIndex: number) {
     this.#manager = manager;
     this.#hookIndex = hookIndex;
     this.#valueIndex = valueIndex;

@@ -6,10 +6,12 @@
   "main": "./dist/bridge-vue.cjs.js",
   "module": "./dist/bridge-vue.esm-bundler.js",
   "types": "./dist/types.d.ts",
-  "typings": "./dist/types.d.ts",
   "scripts": {
     "test": "vitest --",
-    "build": "rimraf dist && rollup -c && api-extractor run --local",
+    "build": "rimraf dist && rollup -c && pnpm build-dts && pnpm copy-dts && pnpm build-docs",
+    "build-dts": "rimraf temp && tsc --project tsconfig.build.json --noCheck && pnpm copy-dts && tsc-alias -p tsconfig.build.json && api-extractor run --local",
+    "copy-dts": "copyfiles  \"src/**/*.d.ts\" temp/packages/vue",
+    "build-docs": "api-documenter markdown -i temp -o docs",
     "release": "release-it"
   },
   "exports": {
@@ -28,7 +30,6 @@
   "sideEffects": false,
   "files": [
     "dist",
-    "types",
     "README.md"
   ],
   "publishConfig": {
@@ -40,15 +41,20 @@
       "release-it-pnpm": {}
     }
   },
+  "dependencies": {
+    "@bridge/core": "workspace:*"
+  },
   "devDependencies": {
     "@rollup/plugin-alias": "^5.1.1",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@rollup/plugin-replace": "^5.0.5",
     "@types/react": "^18.3.12",
     "api-extractor": "^99.99.99",
+    "copyfiles": "^2.4.1",
     "rimraf": "^5.0.5",
     "rollup": "^4.17.2",
     "rollup-plugin-dts": "^6.1.1",
-    "rollup-plugin-esbuild": "^6.1.1"
+    "rollup-plugin-esbuild": "^6.1.1",
+    "tsc-alias": "^1.8.10"
   }
 }
