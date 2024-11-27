@@ -3,12 +3,12 @@ import type { HookManager } from './index';
 import { activeSub, shouldTrack, ReactiveEffect } from '@vue-internals/reactivity/effect'
 
 class HookCallableSignal<Parameters extends any[], ReturnType> {
-  #manager: HookManager<any>;
+  #manager: HookManager;
   #effects: Set<ReactiveEffect> = new Set<ReactiveEffect>();
   #hookIndex: number;
   #valueIndex: number;
 
-  constructor(manager: HookManager<any>, hookIndex: number, valueIndex: number) {
+  constructor(manager: HookManager, hookIndex: number, valueIndex: number) {
     this.#manager = manager;
     this.#hookIndex = hookIndex;
     this.#valueIndex = valueIndex;
