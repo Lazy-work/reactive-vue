@@ -5,3 +5,5 @@ lib/
 .idea/
 .history/
 coverage/
+temp
+docs
