@@ -85,6 +85,13 @@ export {
 /**
  * @internal
  */
+export {
+  withAsyncContext
+} from '@vue-internals/runtime-core/apiSetupHelpers';
+
+/**
+ * @internal
+ */
 import {
   getCurrentInstance as getCurrentInstanceImpl,
   setCurrentInstance as setCurrentInstanceImpl

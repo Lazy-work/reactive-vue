@@ -7,12 +7,21 @@ export {
   $if,
   $switch,
   v,
+  nextTick,
+  getCurrentInstance,
   onBeforeMount,
   onMounted,
   onBeforeUpdate,
   onUpdated,
   onBeforeUnmount,
   onUnmounted,
+} from '@bridge/core';
+
+/**
+ * @internal
+ */
+export {
+  withAsyncContext
 } from '@bridge/core';
 
 usePlugin(InjectionPlugin);
@@ -104,9 +113,7 @@ export {
   watch,
   watchEffect,
   watchPostEffect,
-  watchSyncEffect,
-  nextTick,
-  getCurrentInstance,
+  watchSyncEffect
 } from '@vue/runtime-core';
 
 export { TrackOpTypes, TriggerOpTypes } from '@vue/reactivity';
